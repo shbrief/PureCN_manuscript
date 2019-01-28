@@ -1,0 +1,182 @@
+---
+title: "LOH"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+})
+```
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+source("~/Documents/github/PureCN_manuscript/Figures/final/non_dup.R")
+```
+
+## LOH Granges from PureCN output
+```{r}
+loh_dir = "~/Documents/github/PureCN_manuscript/Results/LOH"
+LOH_t_931070 = readRDS(file.path(loh_dir, "data/931070_LOH_tumor.rds")) 
+
+LOH = GRanges(seqnames(LOH_t_931070[[1]]), 
+              ranges(LOH_t_931070[[1]]), 
+              strand(LOH_t_931070[[1]]), 
+              gene.symbol = LOH_t_931070[[1]]$gene.symbol)
+```
+
+## Load ABSOLUTE GrangesList_Hg38
+```{r}
+abs_gl_hg38 = readRDS("~/Documents/github/PureCN_manuscript/Results/ABSOLUTE/ABSOLUTE_OV_grangeslist_all_hg38.rds")
+abs_gl_hg38 = abs_gl_hg38[ovc_236]   # 236 elements
+```
+
+## Extract HLA-A/B/C and TP53 LOH results from ABSOLUTE GrangesList
+```{r}
+ABS_LOH_all = data.frame(SampleId = NA, HLAA_LOH = NA, HLAB_LOH = NA, HLAC_LOH = NA, TP53_LOH = NA)
+
+for (i in seq_along(abs_gl_hg38)) {
+  SampleId = names(abs_gl_hg38[i])
+  x = findOverlaps(LOH, abs_gl_hg38[[i]]) %>% as.matrix()
+
+  if (1 %in% x[,"queryHits"]) {
+    ind = x[which(x[,"queryHits"] == 1), "subjectHits"]
+    abs_loh = abs_gl_hg38[[i]][ind]
+    if (abs_loh$Modal_HSCN_1 == 0 | abs_loh$Modal_HSCN_2 == 0) HLAA_LOH = TRUE else HLAA_LOH = FALSE
+  } else {HLAA_LOH = NA}
+  
+  if (2 %in% x[,"queryHits"]) {
+    ind = x[which(x[,"queryHits"] == 2), "subjectHits"]
+    abs_loh = abs_gl_hg38[[i]][ind]
+    if (abs_loh$Modal_HSCN_1 == 0 | abs_loh$Modal_HSCN_2 == 0) HLAC_LOH = TRUE else HLAC_LOH = FALSE
+  } else {HLAC_LOH = NA}
+  
+  if (3 %in% x[,"queryHits"]) {
+    ind = x[which(x[,"queryHits"] == 3), "subjectHits"]
+    abs_loh = abs_gl_hg38[[i]][ind]
+    if (abs_loh$Modal_HSCN_1 == 0 | abs_loh$Modal_HSCN_2 == 0) HLAB_LOH = TRUE else HLAB_LOH = FALSE
+  } else {HLAB_LOH = NA}
+  
+  if (4 %in% x[,"queryHits"]) {
+    ind = x[which(x[,"queryHits"] == 4), "subjectHits"]
+    abs_loh = abs_gl_hg38[[i]][ind]
+    if (abs_loh$Modal_HSCN_1 == 0 | abs_loh$Modal_HSCN_2 == 0) TP53_LOH = TRUE else TP53_LOH = FALSE
+  } else {TP53_LOH = NA}
+
+  new_entry = data.frame(SampleId = SampleId,
+                         HLAA_LOH = HLAA_LOH, 
+                         HLAB_LOH = HLAB_LOH,
+                         HLAC_LOH = HLAC_LOH, 
+                         TP53_LOH = TP53_LOH)
+  ABS_LOH_all = rbind(ABS_LOH_all, new_entry)
+}
+
+ABS_LOH_all = ABS_LOH_all[-1,]
+head(ABS_LOH_all)
+```
+
+##### Save the LOH summary of ABSOLUTE
+```{r eval=FALSE}
+write.csv(ABS_LOH_all, file = "~/Documents/github/PureCN_manuscript/Results/LOH/extdata/ABS_LOH_all.tsv")
+```
+
+## Combine TP53 LOH results
+```{r echo=FALSE}
+ABS_LOH_all = read.csv("~/Documents/github/PureCN_manuscript/Results/LOH/extdata/ABS_LOH_all.tsv")[,-1]
+```
+
+##### Load all PureCN outputs: both from 931070 and S0293689
+```{r}
+data_dir = "~/Documents/github/PureCN_manuscript/Results/LOH/extdata"
+TP53_931070 = read.table(file.path(data_dir, "931070_TP53_LOH_gene.tsv"), stringsAsFactors = FALSE)
+TP53_S0293689 = read.table(file.path(data_dir, "S0293689_TP53_LOH_gene.tsv"), stringsAsFactors = FALSE)
+
+# change S0293689 filename to barcode
+map_S0293689 = read.csv("/data/16tb/CNVworkflow/S0293689/sampleMap_S0293689.csv", stringsAsFactors = FALSE)[,-1]
+map_S0293689$filename = tools::file_path_sans_ext(map_S0293689$filename)
+
+for (i in 1:nrow(TP53_S0293689)) {
+  TP53_S0293689$sampleID[i] = map_S0293689[which(map_S0293689$filename == TP53_S0293689$sampleID[i]),]$barcode
+}
+```
+
+##### combine all PureCN outputs: both from 931070 and S0293689
+```{r}
+TP53_PCN = rbind(TP53_931070, TP53_S0293689)
+TP53_PCN$sampleID = stringr::str_extract(TP53_PCN$sampleID, "TCGA.{11}")
+TP53_PCN = TP53_PCN[which(TP53_PCN$sampleID %in% ovc_236),]
+```
+
+##### combine all outputs: both from PureCN and ABSOLUTE
+```{r}
+names(TP53_PCN)[1] = "SampleId"
+TP53_all = left_join(ABS_LOH_all[,c(1,5)], TP53_PCN, by = "SampleId")   # 236 obs.
+```
+
+keep only the complete cases (remove any row with NA value)
+```{r}
+TP53_all = TP53_all[complete.cases(TP53_all),]   # 223 obs.
+```
+
+##### Save
+```{r eval=FALSE}
+write.csv(TP53_all, file = "~/Documents/github/PureCN_manuscript/Results/LOH/extdata/TP53_all.tsv")
+```
+
+## Combine HLA LOH results
+##### Load all PureCN outputs: both from 931070 and S0293689
+```{r}
+data_dir = "~/Documents/github/PureCN_manuscript/Results/LOH/extdata"
+HLA_931070 = read.table(file.path(data_dir, "931070_HLA_LOH_gene.tsv"), stringsAsFactors = FALSE)
+HLA_S0293689 = read.table(file.path(data_dir, "S0293689_HLA_LOH_gene.tsv"), stringsAsFactors = FALSE)
+
+# change S0293689 filename to barcode
+map_S0293689 = read.csv("/data/16tb/CNVworkflow/S0293689/sampleMap_S0293689.csv", stringsAsFactors = FALSE)[,-1]
+map_S0293689$filename = tools::file_path_sans_ext(map_S0293689$filename)
+
+for (i in 1:nrow(HLA_S0293689)) {
+  HLA_S0293689$sampleID[i] = map_S0293689[which(map_S0293689$filename == HLA_S0293689$sampleID[i]),]$barcode
+}
+```
+
+##### combine all PureCN outputs: both from 931070 and S0293689
+```{r}
+HLA_PCN = rbind(HLA_931070, HLA_S0293689)
+HLA_PCN$sampleID = stringr::str_extract(HLA_PCN$sampleID, "TCGA.{11}")
+HLA_PCN = HLA_PCN[which(HLA_PCN$sampleID %in% ovc_236),]
+```
+
+##### combine all outputs: both from PureCN and ABSOLUTE
+```{r}
+names(HLA_PCN)[1] = "SampleId"
+HLA_all = left_join(ABS_LOH_all[,c(1:4)], HLA_PCN, by = "SampleId")   # 236 obs.
+```
+
+keep only the complete cases (remove any row with NA value)
+```{r}
+HLA_all = HLA_all[complete.cases(HLA_all),]   # 140 obs.
+```
+
+##### Save
+```{r eval=FALSE}
+write.csv(HLA_all, file = "~/Documents/github/PureCN_manuscript/Results/LOH/extdata/HLA_all.tsv")
+```
+
+
+

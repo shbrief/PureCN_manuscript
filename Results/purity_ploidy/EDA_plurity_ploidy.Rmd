@@ -1,0 +1,289 @@
+---
+title: "EDA: Purity & Ploidy from PureCN outputs"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(stringr)
+  library(ggplot2)
+  library(cowplot)
+})
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+library(ggplot2)
+library(cowplot)
+```
+
+## Import purity/ploidy from ABSOLUTE
+557 ABSOLUTE outputs are loaded as 'abs_puri_ploi' with the SampleId format, TCGA-XX-XXXX-XX
+```{r}
+script_dir = "/home/sehyun/Documents/github/PureCN_manuscript"
+methods_dir = file.path(script_dir, "Methods")
+results_dir = file.path(script_dir, "Results/purity_ploidy")
+
+source(file.path(methods_dir, "sample_sorting.R"))
+source(file.path(results_dir, "R/puri_ploi_function.R"))
+source(file.path(results_dir, "R/purity_ploidy_ABS.R"))
+```
+
+## Import purity/ploidy from PureCN
+### Tumor_only PureCN result
+```{r}
+purecn_mode = "tumor_only"
+
+kit="931070"
+source(file.path(results_dir, "R/purity_ploidy_import.R"))
+res_tumor_only_931070 = res_all
+rm(res, res_all)
+
+kit="S0293689"
+source(file.path(results_dir, "R/purity_ploidy_import.R"))
+res_tumor_only_S0293689 = res_all
+rm(res, res_all)
+
+tumor_only = rbind(res_tumor_only_931070, res_tumor_only_S0293689)
+tumor_only = as.data.frame(lapply(tumor_only, unlist))
+# saveRDS(puri_ploi_tumor_only, file = file.path(results_dir, "data/puri_ploi_tumor_only.rds"))
+```
+
+### Matching_normal PureCN result
+```{r}
+purecn_mode = "matching_normal"
+
+kit="931070"
+source(file.path(results_dir, "R/purity_ploidy_import.R"))
+res_matching_normal_931070 = res_all
+rm(res, res_all)
+
+kit="S0293689"
+source(file.path(results_dir, "R/purity_ploidy_import.R"))
+res_matching_normal_S0293689 = res_all
+rm(res, res_all)
+
+matching_normal = rbind(res_matching_normal_931070, res_matching_normal_S0293689)
+matching_normal = as.data.frame(lapply(matching_normal, unlist))
+# saveRDS(puri_ploi_matching_normal, file = file.path(results_dir, "data/puri_ploi_matching_normal.rds"))
+```
+
+## Combine ABSOLUTE and PureCN outputs (Tumor_only)
+##### Check duplicates
+- 27 samples are duplicated because they were analyzed by both capture kits   
+- 5 samples are duplicated because they were analyzed by one kit (931070) from two different analyte types   
+```{r}
+dup_submitter = tumor_only[which(duplicated(tumor_only$submitter_id)),]$submitter_id
+dup_subset = tumor_only[which(tumor_only$submitter_id %in% dup_submitter),]
+dup_subset = dup_subset[order(dup_subset$submitter_id),]   # 64 x 7
+dup_subset
+```
+
+```{r echo=FALSE}
+t_dup = dup_subset
+write.csv(t_dup, file = file.path(script_dir, "Results/duplication/ovc_t_dup.csv"))
+```
+
+```{r}
+kit_dup_931070 = dup_subset[which(dup_subset$capture_kit == "931070"),][,c(1:3)]
+kit_dup_S0293689 = dup_subset[which(dup_subset$capture_kit == "S0293689"),][,c(1:3)]
+kit_dup_all = left_join(kit_dup_931070, kit_dup_S0293689, by = "Sampleid", suffix = c("_931070", "_S0293689"))
+head(kit_dup_all)
+```
+
+**Purity comparison of 27 technical duplicates**
+
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+df = kit_dup_all
+x = "Purity_931070"
+y = "Purity_S0293689"
+plot_for = "purity"
+
+customLabs = labs(x = "Purity from kit 931070", 
+                  y = "Purity from kit S0293689", 
+                  title = "Purity estimates from different capture kit") 
+
+source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
+```
+
+**Purity comparison of 27 technical duplicates**   
+The major outlier is 'TCGA-23-1118-01A-01W'.
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+df = kit_dup_all
+x = "Ploidy_931070"
+y = "Ploidy_S0293689"
+plot_for = "ploidy"
+
+customLabs = labs(x = "Ploidy from kit 931070", 
+                  y = "Ploidy from kit S0293689", 
+                  title = "Ploidy estimates from different capture kit") 
+
+source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
+```
+
+```{r}
+sample_dup = c("TCGA-25-2396-01", "TCGA-25-2397-01", "TCGA-25-2398-01", "TCGA-59-2348-01", "TCGA-09-2044-01")
+sample_dup = dup_subset[which(dup_subset$submitter_id %in% sample_dup),][,c(1:3, 6)]
+sample_dup
+```
+
+##### Merge the duplicated entries
+```{r}
+dup_subset = dup_subset %>%
+  dplyr::group_by(submitter_id) %>%
+  dplyr::summarise(Sampleid = last(Sampleid),
+            Purity = mean(Purity),
+            Ploidy = mean(Ploidy),
+            Flagged = paste(Flagged, collapse = '|'),
+            Comment = paste(Comment, collapse = '|'),
+            capture_kit = paste(capture_kit, collapse = '|')) %>%
+  as.data.frame(.)
+```
+
+##### Merged duplicates    
+- grouped by 'submitter_id'   
+- If Sampleid from a submitter_id was different, selected the analyte 'W' over 'D'   
+- Purity and Ploidy are merged by 'mean'   
+- Flagged/ Coomment/ capture_kit info was merged with separater '|'   
+```{r}
+dup_subset
+```
+
+Replace 64 duplicates with 32 merged entries
+```{r}
+tumor_only = tumor_only[-which(tumor_only$submitter_id %in% dup_submitter),]
+tumor_only = rbind(tumor_only, dup_subset) 
+
+head(tumor_only, 3)
+```
+
+Rename some columns to combine with ABSOLUTE outputs   
+- Sampleid (TCGA-XX-XXXX-XXX-XXX) --> fullname   
+- submitter_id (TCGA-XX-XXXX-XX) --> SampleId   
+- Purity --> Purity_tumor_only   
+- Ploidy --> Ploidy_tumor_only
+```{r}
+names(tumor_only)[which(names(tumor_only) == "Sampleid")] = "fullname"
+names(tumor_only)[which(names(tumor_only) == "submitter_id")] = "SampleId"
+names(tumor_only)[which(names(tumor_only) == "Purity")] = "Purity_tumor_only"
+names(tumor_only)[which(names(tumor_only) == "Ploidy")] = "Ploidy_tumor_only"
+```
+
+##### Merge
+Combine them through 'SampleId'   
+- among 292 PureCN outputs, 15 doesn't exist in ABSOLUTE outputs   
+- among 550 ABSOLUTE outputs, 273 doesn't exist in PureCN outputs   
+--> there are 277 common samples analyzed by both methods
+```{r warning=FALSE}
+ABS_w_tumor_only = left_join(abs_puri_ploi, tumor_only, by = "SampleId")   # 550 x 9
+ABS_w_tumor_only = ABS_w_tumor_only[!is.na(ABS_w_tumor_only$fullname), ]   # 277 x 9
+```
+
+##### Save 
+ABSOLUTE and tumor_only (PureCN) output
+```{r eval=FALSE}
+saveRDS(ABS_w_tumor_only, file = file.path(results_dir,"data/ABS_w_tumor_only.rds"))
+```
+
+## Combine ABSOLUTE and PureCN outputs (Mathing_normal)
+##### Check duplicates
+- 25 samples are duplicated because they were analyzed by both capture kits   
+- 5 samples are duplicated because they were analyzed by one kit (931070) from two different analyte types   
+```{r}
+dup_submitter = matching_normal[which(duplicated(matching_normal$submitter_id)),]$submitter_id
+dup_subset = matching_normal[which(matching_normal$submitter_id %in% dup_submitter),]
+dup_subset = dup_subset[order(dup_subset$submitter_id),]   # 60 x 7
+dup_subset
+```
+
+```{r echo=FALSE}
+paired_dup = dup_subset
+write.csv(paired_dup, file = file.path(script_dir, "Results/duplication/ovc_paired_dup.csv"))
+```
+
+##### Merge the duplicated entries
+```{r}
+dup_subset = dup_subset %>%
+  dplyr::group_by(submitter_id) %>%
+  dplyr::summarise(Sampleid = last(Sampleid),
+            Purity = mean(Purity),
+            Ploidy = mean(Ploidy),
+            Flagged = paste(Flagged, collapse = '|'),
+            Comment = paste(Comment, collapse = '|'),
+            capture_kit = paste(capture_kit, collapse = '|')) %>%
+  as.data.frame(.)
+```
+
+##### Merged duplicates    
+- grouped by 'submitter_id'   
+- If Sampleid from a submitter_id was different, selected the analyte 'W' over 'D'   
+- Purity and Ploidy are merged by 'mean'   
+- Flagged/ Coomment/ capture_kit info was merged with separater '|'   
+```{r}
+dup_subset
+```
+
+Replace 60 duplicates with 30 merged entries
+```{r}
+matching_normal = matching_normal[-which(matching_normal$submitter_id %in% dup_submitter),]
+matching_normal = rbind(matching_normal, dup_subset) 
+
+head(matching_normal, 3)
+```
+
+Rename some columns to combine with ABSOLUTE outputs   
+- Sampleid (TCGA-XX-XXXX-XXX-XXX) --> fullname   
+- submitter_id (TCGA-XX-XXXX-XX) --> SampleId   
+- Purity --> Purity_matching_normal   
+- Ploidy --> Ploidy_matching_normal
+```{r}
+names(matching_normal)[which(names(matching_normal) == "Sampleid")] = "fullname"
+names(matching_normal)[which(names(matching_normal) == "submitter_id")] = "SampleId"
+names(matching_normal)[which(names(matching_normal) == "Purity")] = "Purity_matching_normal"
+names(matching_normal)[which(names(matching_normal) == "Ploidy")] = "Ploidy_matching_normal"
+```
+
+##### Merge
+Combine them through 'SampleId' and remove the rows that we didn't process using PureCN + 12 rows that were processed by PureCN but not by ABSOLUTE
+```{r warning=FALSE}
+ABS_w_matching_normal = left_join(abs_puri_ploi, matching_normal, by = "SampleId")
+ABS_w_matching_normal = ABS_w_matching_normal[!is.na(ABS_w_matching_normal$fullname), ]
+```
+
+##### Save 
+ABSOLUTE and matching_normal (PureCN) output
+```{r eval=FALSE}
+saveRDS(ABS_w_matching_normal, 
+        file.path(results_dir,"data/ABS_w_matching_normal.rds"))
+```
+
+## Combine PureCN outputs: with or without matching-normal
+Using the 'fullname' (= barcode, TCGA-XX-XXXX-XXX-XXX)
+```{r warning=FALSE}
+purecn_output = left_join(tumor_only, matching_normal, 
+                         by = "fullname", 
+                         suffix = c("_tumor_only", "_matching_normal"))
+
+purecn_output = purecn_output[!is.na(purecn_output$Purity_matching_normal),]
+```
+
+##### Save
+merged
+```{r eval=FALSE}
+saveRDS(purecn_output, file = file.path(results_dir,"data/purecn_only.rds"))
+```

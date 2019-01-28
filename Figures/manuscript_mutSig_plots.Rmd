@@ -1,0 +1,415 @@
+---
+title: "Mutational Signature Plots"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(cowplot)
+})
+```
+
+```{r}
+library(dplyr)
+library(cowplot)
+```
+
+# Mutation Sinature Stacked Barplot
+## Load mutSig and mut_count data
+```{r}
+mutSig_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Results/mutSig"
+mut_count = read.table(file.path(mutSig_dir, "extdata/mut_count.tsv"))
+
+sig_t = readRDS(file.path(mutSig_dir, "data/sig_all_tumor_only.rds"))
+sig_p = readRDS(file.path(mutSig_dir, "data/sig_all_matching_normal.rds"))
+```
+
+a list of non-dupicated samples
+```{r}
+source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/non_dup.R")
+```
+
+subset only non-duplicated samples
+```{r}
+sig_t = sig_t[stringr::str_extract(sig_t$SampleId, "TCGA.{11}") %in% ovc_236,]
+sig_p = sig_p[stringr::str_extract(sig_p$SampleId, "TCGA.{11}") %in% ovc_236,]
+```
+
+## Subset with Signature.3 and Signature.1
+```{r message=FALSE}
+# subset only Signature.3
+sig_t_sub = sig_t[,c("SampleId", "Signature.3", "Signature.1")] 
+sig_p_sub = sig_p[,c("SampleId", "Signature.3", "Signature.1")] 
+
+# change the data type = unlist
+sig_t_sub = lapply(sig_t_sub, unlist) %>% as.data.frame()
+sig_p_sub = lapply(sig_p_sub, unlist) %>% as.data.frame()
+
+ovc_sig = left_join(sig_t_sub, sig_p_sub, by = "SampleId", suffix = c(".t", ".p"))
+ovc_sig = left_join(ovc_sig, mut_count, by = "SampleId")   # 233 obs.
+```
+
+## Samples with at least 50 mutations
+```{r}
+ovc_sig = ovc_sig[which(ovc_sig$mut_tumor_only > 50 & ovc_sig$mut_matching > 50),]   # 160 obs.
+```
+
+## Signature.3
+```{r}
+agree_yes = which(ovc_sig$Signature.3.t != 0 & ovc_sig$Signature.3.p != 0)   # 125 (both)
+agree_no = which(ovc_sig$Signature.3.t == 0 & ovc_sig$Signature.3.p == 0)   # 16 (neither)
+disagree_t_no = which(ovc_sig$Signature.3.t == 0 & ovc_sig$Signature.3.p != 0)   # 9 (only p)
+disagree_p_no = which(ovc_sig$Signature.3.t != 0 & ovc_sig$Signature.3.p == 0)  # 10 (only t)
+```
+
+```{r}
+ovc_sig$conc_3 = NA
+ovc_sig$conc_3[agree_yes] = "1"
+ovc_sig$conc_3[agree_no] = "2"
+ovc_sig$conc_3[disagree_p_no] = "3"
+ovc_sig$conc_3[disagree_t_no] = "4"
+
+
+ovc_sig$conc_3 = factor(ovc_sig$conc_3, 
+                  labels = c("Both", "Neither", "Tumor-only", "Paired"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+```
+
+```{r}
+table(ovc_sig$conc_3)
+```
+
+## Signature.1
+```{r}
+agree_yes = which(ovc_sig$Signature.1.t != 0 & ovc_sig$Signature.1.p != 0)   # 111 (both)
+agree_no = which(ovc_sig$Signature.1.t == 0 & ovc_sig$Signature.1.p == 0)   # 13 (neither)
+disagree_t_no = which(ovc_sig$Signature.1.t == 0 & ovc_sig$Signature.1.p != 0)   # 7 (only p)
+disagree_p_no = which(ovc_sig$Signature.1.t != 0 & ovc_sig$Signature.1.p == 0)  # 29 (only t)
+```
+
+```{r}
+ovc_sig$conc_1 = NA
+ovc_sig$conc_1[agree_yes] = "1"
+ovc_sig$conc_1[agree_no] = "2"
+ovc_sig$conc_1[disagree_p_no] = "3"
+ovc_sig$conc_1[disagree_t_no] = "4"
+
+
+ovc_sig$conc_1 = factor(ovc_sig$conc_1, 
+                  labels = c("Both", "Neither", "Tumor-only", "Paired"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+```
+
+```{r}
+table(ovc_sig$conc_1)
+```
+
+```{r}
+# stacked bar plot
+sig3_value = round(table(ovc_sig$conc_3)/nrow(ovc_sig)*100, digits = 1)
+sig1_value = round(table(ovc_sig$conc_1)/nrow(ovc_sig)*100, digits = 1)
+condition = rep(factor(c("Both", "Neither", "Tumor-only", "Paired"), levels = c("Paired", "Tumor-only", "Neither", "Both")), 2)
+type = c(rep("Sig.1",4), rep("Sig.3",4))
+data = data.frame(condition, value = c(sig1_value, sig3_value), type)
+```
+
+```{r eval=FALSE}
+saveRDS(data, file = "~/wallabe4_backup/github/PureCN_manuscript_backup/Results/mutSig/data/ovc_mutSig.rds")
+```
+
+```{r fig.width = 3, fig.height = 4.5}
+ovc_mutSig_plot = ggplot(data, aes(fill=condition, y=value, x = type, order = as.numeric(value))) + 
+  geom_bar(stat="identity", position="fill", width = 0.4) +
+  labs(title = "B. TCGA-OV") + 
+  theme_light() +
+  theme(plot.title = element_text(size = 14, 
+                                  face = "bold", 
+                                  margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 12, face = "bold"), 
+        axis.text.y = element_text(size = 10, face = "bold"), 
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        # axis.title.y = element_text(size = 12, face = "bold"),
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), 
+        panel.grid.minor = element_line(),
+        legend.position = "none",
+        # legend.title = element_blank(),
+        # legend.text = element_text(size = 10, face = "plain"),
+        # legend.background = element_rect(fill = NA),
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")) +
+  scale_y_continuous(labels = scales::percent) + ylab("Concordance") + 
+  scale_fill_manual(values = c("grey", "dark grey", "tomato", "red"))
+
+ovc_mutSig_plot
+```
+
+```{r eval=FALSE}
+saveRDS(ovc_mutSig_plot, file = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/Fig3B.ovc_mutSig.rds")
+```
+
+# Mutation Signature Plot with Merging Duplicates
+## Load mutation counts
+```{r}
+mutSig_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Results/mutSig"
+mut_count = read.table(file.path(mutSig_dir, "extdata/mut_count.tsv"))
+```
+
+## Load mutational signatures
+```{r}
+sig_all_tumor_only = readRDS(file.path(mutSig_dir, "data/sig_all_tumor_only.rds"))
+sig_all_matching_normal = readRDS(file.path(mutSig_dir,
+                                            "data/sig_all_matching_normal.rds"))
+```
+
+## Mutational Signature 3
+##### Subset mutational signature 3
+```{r warning=FALSE}
+sig_3_tumor_only = sig_all_tumor_only[, c(1, 4)]
+sig_3_tumor_only = as.data.frame(lapply(sig_3_tumor_only, unlist))
+
+sig_3_matching_nomral = sig_all_matching_normal[, c(1, 4)]
+sig_3_matching_nomral = as.data.frame(lapply(sig_3_matching_nomral, unlist))
+
+sig_3 = left_join(sig_3_tumor_only, sig_3_matching_nomral, 
+                  by = "SampleId", suffix = c("_t_only", "_matching_n"))
+```
+
+##### Combine mutational signature 3 and mutation counts
+```{r warning=FALSE}
+sig_3_mut_count = left_join(sig_3, mut_count, by = "SampleId")
+sig_3_mut_count = sig_3_mut_count[!is.na(sig_3_mut_count$mut_matching),]
+```
+
+##### Subset samples with > 50 mutations (277 non_NA --> 190 rows)
+```{r}
+sig3_mut50 = sig_3_mut_count[sig_3_mut_count$mut_tumor_only > 50 &
+                               sig_3_mut_count$mut_matching > 50, ]
+```
+
+```{r message=FALSE, fig.width = 5.5, fig.height = 4.5}
+cor3 = round(cor(sig3_mut50$Signature.3_t_only,
+                 sig3_mut50$Signature.3_matching_n), 2)
+
+sig3_mut50_plot = ggplot(sig3_mut50) +
+  geom_point(aes(x = Signature.3_t_only, 
+                 y = Signature.3_matching_n), 
+             color = "red", alpha = 1/3) + 
+  labs(x = "Tumor only",
+       y = "Tumor paired", 
+       title = "B. Signature.3 with > 50 mutations") + 
+  xlim(0, 1) + ylim(0, 1) +
+  # styling
+  geom_abline(col="grey", lwd=0.5) + 
+  # scale_colour_manual(values = c("black", "blue")) + 
+  theme_light() +
+  theme(plot.title = element_text(size = 14, 
+                                  face = "bold", 
+                                  margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 10, face = "bold"), 
+        axis.text.y = element_text(size = 10, face = "bold"), 
+        axis.title.x = element_text(size = 12, face = "bold"), 
+        axis.title.y = element_text(size = 12, face = "bold"), 
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), 
+        panel.grid.minor = element_line(),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 10, face = "bold"),
+        plot.margin = unit(c(0.5, 4, 0.2, 0.5), "cm")) +
+  scale_x_continuous(limits=c(0, 1), breaks=seq(0,1,0.2)) +
+  scale_y_continuous(limits=c(0, 1), breaks=seq(0,1,0.2))
+
+ggdraw(add_sub(sig3_mut50_plot, 
+               paste("Concordance\ncorrelation =", cor3), 
+               vpadding = grid::unit(0, "lines"),
+       y = 11.5, x = 0.05, hjust = 0, 
+       fontface = "italic", size = 12))
+```
+
+## Mutational Signature 1
+##### Subset mutational signature 1
+```{r warning=FALSE}
+sig_1_tumor_only = sig_all_tumor_only[, c(1, 2)]
+sig_1_tumor_only = as.data.frame(lapply(sig_1_tumor_only, unlist))
+
+sig_1_matching_nomral = sig_all_matching_normal[, c(1, 2)]
+sig_1_matching_nomral = as.data.frame(lapply(sig_1_matching_nomral, unlist))
+
+sig_1 = left_join(sig_1_tumor_only, sig_1_matching_nomral, 
+                  by = "SampleId", suffix = c("_t_only", "_matching_n"))
+```
+
+##### Combine mutational signature 3 and mutation counts
+```{r warning=FALSE}
+sig_1_mut_count = left_join(sig_1, mut_count, by = "SampleId")
+sig_1_mut_count = sig_1_mut_count[!is.na(sig_1_mut_count$mut_matching),]
+```
+
+##### Subset samples with > 50 mutations (277 --> 190 rows)
+```{r}
+sig1_mut50 = sig_1_mut_count[sig_1_mut_count$mut_tumor_only > 50 &
+                               sig_1_mut_count$mut_matching > 50, ]
+```
+
+```{r message=FALSE, echo=FALSE, fig.width = 5.5, fig.height = 4.5}
+cor1 = round(cor(sig1_mut50$Signature.1_t_only,
+                 sig1_mut50$Signature.1_matching_n), 2)
+
+sig1_mut50_plot = ggplot(sig1_mut50) +
+  geom_point(aes(x = Signature.1_t_only, 
+                 y = Signature.1_matching_n), 
+             color = "red", alpha = 1/3) + 
+  labs(x = "Tumor only",
+       y = "Tumor paired", 
+       title = "C. Signature.1 with > 50 mutations") + 
+  xlim(0, 1) + ylim(0, 1) +
+  # styling
+  geom_abline(col="grey", lwd=0.5) + 
+  # scale_colour_manual(values = c("black", "blue")) + 
+  theme_light() +
+  theme(plot.title = element_text(size = 14, 
+                                  face = "bold", 
+                                  margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 10, face = "bold"), 
+        axis.text.y = element_text(size = 10, face = "bold"), 
+        axis.title.x = element_text(size = 12, face = "bold"), 
+        axis.title.y = element_text(size = 12, face = "bold"), 
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), 
+        panel.grid.minor = element_line(),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 10, face = "bold"),
+        plot.margin = unit(c(0.5, 4, 0.2, 0.5), "cm")) +
+  scale_x_continuous(limits=c(0, 1), breaks=seq(0,1,0.2)) +
+  scale_y_continuous(limits=c(0, 1), breaks=seq(0,1,0.2))
+
+ggdraw(add_sub(sig1_mut50_plot, 
+               paste("Concordance\ncorrelation =", cor1), 
+               vpadding = grid::unit(0, "lines"),
+       y = 11.5, x = 0.05, hjust = 0, 
+       fontface = "italic", size = 12))
+```
+
+## Plotting Signature 3 with <= 50 mutations
+```{r}
+for (i in 1:nrow(sig_3_mut_count)) {
+  if (sig_3_mut_count$mut_tumor_only[i] > 50 & sig_3_mut_count$mut_matching[i] > 50) {
+    sig_3_mut_count$cutoff[i] = "> 50 mutations"
+  } else {
+    sig_3_mut_count$cutoff[i] = "<= 50 mutations"
+  }
+}
+```
+
+```{r message=FALSE, echo=FALSE, fig.width = 6.5, fig.height = 4.5}
+cor3 = round(cor(sig3_mut50$Signature.3_t_only,
+                 sig3_mut50$Signature.3_matching_n), 2)
+
+sig_3_mut_count_plot = ggplot(sig_3_mut_count) +
+  geom_point(aes(x = Signature.3_t_only, 
+                 y = Signature.3_matching_n, 
+                 color = cutoff), 
+             alpha = 1/2) + 
+  labs(x = "Tumor only",
+       y = "Tumor paired", 
+       title = "Mutational Signature 3", 
+       color = "the number of\nsomatic mutations") + 
+  xlim(0, 1) + ylim(0, 1) +
+  # styling
+  geom_abline(col="grey", lwd=0.5) + 
+  scale_colour_manual(values = c("grey", "red")) +
+  theme_light() +
+  theme(plot.title = element_text(size = 14, face = "bold", 
+                                  margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 10, face = "bold"), 
+        axis.text.y = element_text(size = 10, face = "bold"), 
+        axis.title.x = element_text(size = 12, face = "bold"), 
+        axis.title.y = element_text(size = 12, face = "bold"), 
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), 
+        panel.grid.minor = element_line(),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 10, face = "bold"),
+        # legend.position = "bottom",
+        plot.margin = unit(c(0.5, 2, 0.2, 1), "cm")) +
+  scale_x_continuous(limits=c(0, 1), breaks=seq(0,1,0.2)) +
+  scale_y_continuous(limits=c(0, 1), breaks=seq(0,1,0.2))
+
+ggdraw(add_sub(sig_3_mut_count_plot, 
+               paste("Concordance\ncorrelation =", cor3), 
+               vpadding = grid::unit(0, "lines"),
+               y = 12.5, x = 0.05, hjust = 0, 
+               fontface = "italic", size = 11))
+```
+
+## Plotting Signature 1 with <= 50 mutations
+```{r}
+for (i in 1:nrow(sig_1_mut_count)) {
+  if (sig_1_mut_count$mut_tumor_only[i] > 50 & sig_1_mut_count$mut_matching[i] > 50) {
+    sig_1_mut_count$cutoff[i] = "> 50 mutations"
+  } else {
+    sig_1_mut_count$cutoff[i] = "<= 50 mutations"
+  }
+}
+```
+
+```{r message=FALSE, echo=FALSE, fig.width = 6.5, fig.height = 4.5}
+cor1 = round(cor(sig1_mut50$Signature.1_t_only,
+                 sig1_mut50$Signature.1_matching_n), 2)
+
+sig_1_mut_count_plot = ggplot(sig_1_mut_count) +
+  geom_point(aes(x = Signature.1_t_only, 
+                 y = Signature.1_matching_n, 
+                 color = cutoff), 
+             alpha = 1/2) + 
+  labs(x = "Tumor only",
+       y = "Tumor paired", 
+       title = "Mutational Signature 1", 
+       color = "the number of\nsomatic mutations") + 
+  xlim(0, 1) + ylim(0, 1) +
+  # styling
+  geom_abline(col="grey", lwd=0.5) + 
+  scale_colour_manual(values = c("grey", "red")) +
+  theme_light() +
+  theme(plot.title = element_text(size = 14, face = "bold", 
+                                  margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 10, face = "bold"), 
+        axis.text.y = element_text(size = 10, face = "bold"), 
+        axis.title.x = element_text(size = 12, face = "bold"), 
+        axis.title.y = element_text(size = 12, face = "bold"), 
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), 
+        panel.grid.minor = element_line(),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 10, face = "bold"),
+        # legend.position = "bottom",
+        plot.margin = unit(c(0.5, 2, 0.2, 1), "cm")) +
+  scale_x_continuous(limits=c(0, 1), breaks=seq(0,1,0.2)) +
+  scale_y_continuous(limits=c(0, 1), breaks=seq(0,1,0.2))
+
+ggdraw(add_sub(sig_1_mut_count_plot, 
+               paste("Concordance\ncorrelation =", cor1), 
+               vpadding = grid::unit(0, "lines"),
+               y = 12.5, x = 0.05, hjust = 0, 
+               fontface = "italic", size = 11))
+```
+
+```{r}
+sessionInfo()
+```

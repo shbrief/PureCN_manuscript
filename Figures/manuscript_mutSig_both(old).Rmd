@@ -1,0 +1,70 @@
+---
+title: "Mutational Signature Plots"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(cowplot)
+})
+```
+
+```{r}
+library(dplyr)
+library(cowplot)
+```
+
+```{r}
+ovc_mutSig = readRDS("~/Documents/github/PureCN_manuscript/Results/mutSig/data/ovc_mutSig.rds")
+luad_mutSig = readRDS("~/Documents/github/PureCN_manuscript/luad/Results/mutSig/data/luad_mutSig.rds")
+```
+
+```{r}
+all_mutSig = rbind(ovc_mutSig, luad_mutSig)
+```
+
+```{r fig.width=6.5, fig.height=4.5}
+mutSig_plot = ggplot(all_mutSig, aes(fill=condition, y=value, x = type, order = as.numeric(value))) + 
+  geom_bar(stat="identity", position="fill", width = 0.4) +
+  labs(title = "B. Mutational Signatures") + 
+  theme_light() +
+  theme(plot.title = element_text(size = 14, 
+                                  face = "bold", 
+                                  margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 10, face = "bold"), 
+        axis.text.y = element_text(size = 10, face = "bold"), 
+        # axis.title.x = element_text(size = 12, face = "bold"), 
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 12, face = "bold"),
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), 
+        panel.grid.minor = element_line(),
+        # legend.position = c(0.16, 0.13),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 10, face = "bold"),
+        legend.background = element_rect(fill = NA),
+        # legend.title = element_text(size = 12, face = "bold"),
+        # legend.text = element_text(size = 10, face = "bold"),
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")) +
+  scale_fill_manual(values = c("grey", "dark grey", "tomato", "red"))
+
+mutSig_plot
+```
+
+```{r eval=FALSE}
+saveRDS(mutSig_plot, file = "~/Documents/github/PureCN_manuscript/Figures/final/Fig3B.mutSig.rds")
+```

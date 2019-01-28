@@ -1,0 +1,199 @@
+---
+title: "CNVworkflow: Purity and Ploidy"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(cowplot)
+})
+```
+
+```{r}
+library(ggplot2)
+library(cowplot)
+```
+
+```{r}
+script_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup"
+methods_dir = file.path(script_dir, "Methods")
+results_dir = file.path(script_dir, "Results/purity_ploidy")
+```
+
+```{r echo=FALSE, eval=FALSE}
+script_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup"
+methods_dir = file.path(script_dir, "Methods")
+results_dir = file.path(script_dir, "Results/purity_ploidy")
+
+source(file.path(methods_dir, "sample_sorting.R"))
+source(file.path(results_dir, "R/puri_ploi_function.R"))
+source(file.path(results_dir, "R/purity_ploidy_ABS.R"))
+
+puri_ploi_931070 = read.csv(file.path(results_dir, "extdata/puri_ploi_table_931070.csv"))
+puri_ploi_S0293689 = read.csv(file.path(results_dir, "extdata/puri_ploi_table_S0293689.csv"))
+
+puri_ploi_931070$kit = "931070"
+puri_ploi_S0293689$kit = "S0293689"
+purecn_puri_ploi = rbind(puri_ploi_931070[-1], puri_ploi_S0293689[-1])   # 323 obs.
+```
+
+## Tumor-only mode 
+Results from 233 samples are plotted (out of 277 tumor-only processed samples)
+```{r}
+source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/non_dup.R")
+purecn_puri_ploi = readRDS(file.path(results_dir,"data/ABS_w_tumor_only.rds"))   # 277 obs.
+purecn_puri_ploi = purecn_puri_ploi[which(purecn_puri_ploi$SampleId %in% ovc_236),]   # 233 obs.
+```
+
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+hist(abs(purecn_puri_ploi$Purity_ABS - purecn_puri_ploi$Purity_tumor_only), 
+     xlab = "abs(ABS$purity - PureCN$purity)", 
+     main = "Abs. diff. b/w purity (TCGA-OV tumor only)",
+     ylim = c(0, 150))
+```
+
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+hist(abs(purecn_puri_ploi$Ploidy_ABS - purecn_puri_ploi$Ploidy_tumor_only), 
+     xlab = "abs(ABS$ploidy - PureCN$ploidy)", 
+     main = "Abs. diff. b/w ploidy (TCGA-OV tumor only)",
+     ylim = c(0, 250))
+```
+
+### Purity Comparisons
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+df = purecn_puri_ploi
+x = "Purity_ABS"
+y = "Purity_tumor_only"
+plot_for = "purity"
+
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "A. TCGA-OV Purity") 
+
+source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/manuscript_figure.R")
+tumor_puri = final_plot
+rm(final_plot)
+
+# out_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+# saveRDS(tumor_puri, file = file.path(out_dir, "Fig1A.ovc_puri.rds"))
+```
+
+### Ploidy Comparisons
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+df = purecn_puri_ploi
+x = "Ploidy_ABS"
+y = "Ploidy_tumor_only"
+plot_for = "ploidy"
+
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "B. TCGA-OV Ploidy") 
+
+source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/manuscript_figure.R")
+tumor_ploi = final_plot
+rm(final_plot)
+
+# saveRDS(tumor_ploi, file = file.path(out_dir, "Fig1B.ovc_ploi.rds"))
+```
+
+## Matching-normal mode
+Results from 233 samples are plotted
+```{r}
+puri_ploi_all = readRDS(file.path(results_dir,"data/ABS_w_matching_normal.rds"))   # 265 obs.
+puri_ploi_all = puri_ploi_all[which(puri_ploi_all$SampleId %in% ovc_236),]   # 233 obs.
+
+head(puri_ploi_all, 3)
+```
+
+### Purity Comparisons
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+df = puri_ploi_all
+x = "Purity_ABS"
+y = "Purity_matching_normal"
+plot_for = "purity"
+
+customLabs = labs(x = "SNP6 array (ABSOLUTE)",
+                  y = "Paired WES (PureCN)",
+                  title = "TCGA-OV Purity")
+
+source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/manuscript_figure.R")
+paired_puri = final_plot
+rm(final_plot)
+```
+
+### Ploidy Comparisons
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+df = puri_ploi_all
+x = "Ploidy_ABS"
+y = "Ploidy_matching_normal"
+plot_for = "ploidy"
+
+customLabs = labs(x = "SNP6 array (ABSOLUTE)",
+       y = "Paired WES (PureCN)",
+       title = "TCGA-OV Ploidy")
+
+source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/manuscript_figure.R")
+paired_ploi = final_plot
+rm(final_plot)
+```
+
+Use `plot.margin = unit(c(0.5,0.9,0.3,0.7), "cm"))`...
+in `~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/manuscript_figure_style.R`
+```{r fig.width = 8, fig.height = 9}
+library(patchwork)
+(tumor_puri | tumor_ploi) /
+  (paired_puri | paired_ploi)
+```
+
+## Compare PureCN outputs: with or wihtout matching-normal 
+Results from 307 samples are plotted
+```{r eval=FALSE}
+purecn_puri_ploi = readRDS(file.path(results_dir,"data/purecn_only.rds"))
+```
+
+### Purity Comparisons
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5, eval=FALSE}
+df = purecn_puri_ploi
+x = "Purity_tumor_only"
+y = "Purity_matching_normal"
+plot_for = "purity"
+
+customLabs = labs(x = "Tumor only", 
+                  y = "Tumor paired", 
+                  title = "A. TCGA-OV Purity") 
+
+source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/manuscript_figure.R")
+```
+
+### Ploidy Comparisons
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5, eval=FALSE}
+df = purecn_puri_ploi
+x = "Ploidy_tumor_only"
+y = "Ploidy_matching_normal"
+plot_for = "ploidy"
+
+customLabs = labs(x = "Tumor only", 
+                  y = "Tumor paired", 
+                  title = "B. TCGA-OV Ploidy") 
+
+source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/manuscript_figure.R")
+```
+
+```{r}
+sessionInfo()
+```
+

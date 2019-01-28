@@ -1,0 +1,105 @@
+---
+title: "EAD: TCGA-LUAD"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##### Load manifest file
+```{r}
+luad_dir = "~/Documents/github/PureCN_manuscript/luad"
+manifest = readRDS(file.path(luad_dir, "luad_manifest_annot.rds"))
+
+head(manifest, 3)
+```
+
+##### Downloaded files
+All the TCGA-LUAD bam files are in `/data/ovarian/luad` directory    
+(1162 bam files which have corresponding results from ABSOLUTE)
+```{r warning=FALSE, message=FALSE}
+luad_manifest_download = readr::read_tsv("/data/ovarian/luad_manifest_download_1.tsv")
+manifest = manifest[manifest$id %in% luad_manifest_download$id,]
+```
+
+##### Normal vs. Tumor samples
+```{r}
+manifest_n = manifest[manifest$sample_definition %in% 
+                        c("Blood Derived Normal", "Solid Tissue Normal"),]
+manifest_t = manifest[manifest$sample_definition %in% 
+                        c("Primary Solid Tumor", "Recurrent Solid Tumor"),]
+
+dim(manifest_t)
+dim(manifest_n)
+```
+
+##### Capture kit used   
+- catalog = "931070"   
+- kit = "Custom V2 Exome Bait, 48 RXN X 16 tubes"   
+- bed = "whole_exome_agilent_1.1_refseq_plus_3_boosters.targetIntervals.bed"
+```{r}
+table(manifest$target_capture_kit_catalog_number)
+```
+
+##### Unique submitter_id
+```{r}
+length(unique(manifest_t$submitter_id))
+length(unique(manifest_n$submitter_id))
+```
+
+There are 506 tumor samples with matching normal that can compared to ABSOLUTE
+```{r}
+sum(unique(manifest_t$submitter_id) %in% unique(manifest_n$submitter_id))
+```
+
+```{r luad_sample_sorting}
+# All TCGA-LUAD samples were processed by cat# 931070
+catalog = "931070"
+source("~/Documents/github/PureCN_manuscript/Methods/input_info.R")
+
+# Load manifest file
+luad_dir = "~/Documents/github/PureCN_manuscript/luad"
+manifest = readRDS(file.path(luad_dir, "luad_manifest_annot.rds"))
+
+# Downloaded bam files which have corresponding ABSOLUTE results
+luad_manifest_download = readr::read_tsv("/data/ovarian/luad_manifest_download_1.tsv")
+manifest = manifest[manifest$id %in% luad_manifest_download$id,]
+manifest$file_dir = "/data/ovarian/luad"
+rm(luad_manifest_download)
+
+# Separate manifest into normal(n) and tumor(t) samples
+manifest_n = manifest[manifest$sample_definition %in% 
+                        c("Blood Derived Normal", "Solid Tissue Normal"),]
+manifest_t = manifest[manifest$sample_definition %in% 
+                        c("Primary Solid Tumor", "Recurrent Solid Tumor"),]
+
+kit_subset_t = manifest_t[which(manifest_t$target_capture_kit_name == kit),]
+bed_subset_t = kit_subset_t[which(kit_subset_t$bedfiles == bed),]   # 568 obs.
+
+kit_subset_n = manifest_n[which(manifest_n$target_capture_kit_name == kit),]
+bed_subset_n = kit_subset_n[which(kit_subset_n$bedfiles == bed),]   # 594 obs.
+```
+
+```{r}
+library(stringr)
+library(dplyr)
+
+dup = bed_subset_t %>% group_by(submitter_id) %>% filter(n()>1)   # 89 obs.
+dup_t = bed_subset_t[bed_subset_t$barcode %in% dup$barcode,]
+dup_t[order(dup_t$barcode),][,c("barcode", "submitter_id", "sample", "analyte")]
+length(unique(str_extract(dup_t$barcode, "TCGA.{11}")))   # 568 - 89 + 30 = 509
+```
+
+```{r}
+dup = bed_subset_n %>% group_by(submitter_id) %>% filter(n()>1)   # 144 obs.
+dup_n = bed_subset_n[bed_subset_n$barcode %in% dup$barcode,]
+dup_n[order(dup_n$barcode),][,c("barcode", "submitter_id", "sample", "analyte")]
+length(unique(str_extract(dup_n$barcode, "TCGA.{11}")))   # 594 - 144 + 102 = 552
+```

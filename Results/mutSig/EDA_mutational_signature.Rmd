@@ -1,0 +1,369 @@
+---
+title: "EAD: mutational signature from Dx.R output"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(stringr)
+})
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+```
+
+# Tumor_only mode 
+```{r}
+run_type = "tumor_only"
+```
+
+## Capture kit 931070
+##### Make a list with paths to all '_signature.csv' files
+```{r}
+catalog = "931070"
+methods_dir = "/home/sehyun/Documents/github/PureCN_manuscript/Methods"
+source(file.path(methods_dir, "input_info.R"))
+
+Dx_dir = file.path("/data/16tb/CNVworkflow", catalog, "purecn_output", paste0(catalog, "_Dx"))
+cds_dir = file.path(Dx_dir, paste0(run_type, "_cds"))
+fname = list.files(cds_dir)
+
+sig_file = file.path(cds_dir, fname, paste0(fname, "_signatures.csv"))
+sig_file = sig_file[file.exists(sig_file)]
+```
+
+##### Import all mutational signature
+Make a data frame with all the mutational signatures for each sample
+```{r}
+sig_summary = sapply(seq_along(sig_file), function(i) {
+  read.csv(sig_file[i], stringsAsFactors = FALSE)
+}) 
+
+sig_summary = as.data.frame(t(sig_summary))
+names(sig_summary)[1] = "SampleId"
+```
+
+Switch full filenames with barcode
+```{r}
+# load full filename and barcode sampleMap
+sampleMap = read.csv("/data/16tb/CNVworkflow/931070/sampleMap_931070.csv")
+sampleMap$SampleId = gsub(".bam", "", sampleMap$filename)
+sampleMap$analyte = str_extract(sampleMap$barcode, "TCGA.{16}")
+
+for (i in 1:nrow(sig_summary)) {
+  sig_summary[i, 1] = sampleMap[sampleMap$SampleId == sig_summary[i, 1], ]$analyte
+}
+
+sig_t_only_931070 = sig_summary
+```
+
+```{r echo=FALSE}
+# clean the environment
+rm(sig_summary, bed, catalog, kit, cds_dir, Dx_dir, fname, sig_file, sampleMap, i, methods_dir)
+```
+
+## Capture kit S0293689
+##### Make a list with paths to all '_signature.csv' files
+```{r}
+catalog = "S0293689"
+methods_dir = "/home/sehyun/Documents/github/PureCN_manuscript/Methods"
+source(file.path(methods_dir, "input_info.R"))
+
+Dx_dir = file.path("/data/16tb/CNVworkflow", catalog, "purecn_output", paste0(catalog, "_Dx"))
+cds_dir = file.path(Dx_dir, paste0(run_type, "_cds"))
+fname = list.files(cds_dir)
+
+sig_file = file.path(cds_dir, fname, paste0(fname, "_signatures.csv"))
+sig_file = sig_file[file.exists(sig_file)]
+```
+
+##### Import all mutational signature
+Make a data frame with all the mutational signatures for each sample
+```{r}
+sig_summary = sapply(seq_along(sig_file), function(i) {
+  read.csv(sig_file[i], stringsAsFactors = FALSE)
+}) 
+
+sig_summary = as.data.frame(t(sig_summary))
+names(sig_summary)[1] = "SampleId"
+```
+
+Switch full filenames with barcode
+```{r}
+# load full filename and barcode sampleMap
+sampleMap = read.csv("/data/16tb/CNVworkflow/S0293689/sampleMap_S0293689.csv")
+sampleMap$SampleId = gsub(".bam", "", sampleMap$filename)
+sampleMap$analyte = str_extract(sampleMap$barcode, "TCGA.{16}")
+
+for (i in 1:nrow(sig_summary)) {
+  sig_summary[i, 1] = sampleMap[sampleMap$SampleId == sig_summary[i, 1], ]$analyte
+}
+
+sig_t_only_S0293689 = sig_summary
+```
+
+```{r echo=FALSE, warning=FALSE}
+# clean the environment
+rm(sig_summary, bed, catalog, kit, cds_dir, Dx_dir, fname, sig_file, sampleMap, i, methods_dir)
+```
+
+## Merge duplicates
+Merge mutational signature outputs from both kits with tumor_only samples
+```{r}
+dat = rbind(sig_t_only_931070, sig_t_only_S0293689)   # 324 obs.
+```
+
+```{r echo=FALSE, eval=FALSE}
+data_dir = "/home/sehyun/Documents/github/PureCN_manuscript/Results/mutSig/data"
+tumor_only = saveRDS(dat, file.path(data_dir, "sig_all_tumor_only_2.rds"))
+```
+
+There are total 32 duplicated samples (27 analyzed by both kits + 5 analyzed from different analytes)   
+
+##### 1. duplicates from both kits
+```{r}
+dup_kit = read.csv("~/Documents/github/PureCN_manuscript/Results/dup_kit.csv")$x
+dup_ind = which(dat$SampleId %in% dup_kit)
+dup_subset = as.data.frame(lapply(dat[dup_ind, ], unlist))
+```
+
+Merge duplicates by taking a mean of them
+```{r}
+dup_subset = dup_subset %>%
+  dplyr::group_by(SampleId) %>%
+  dplyr::summarise_all(funs(mean)) %>%
+  as.data.frame(.)
+```
+
+Switch 54 duplicates with 27 merged
+```{r}
+dat = dat[!dat$SampleId %in% dup_kit,]   # 324 rows --> 270 rows
+dat = rbind(dat, dup_subset)   # 297 x 31
+```
+
+```{r echo=FALSE}
+# clean the environment
+rm(dup_kit, dup_ind, dup_subset)
+```
+
+##### 2. duplicates from different analytes
+```{r}
+dup_analyte = read.csv("~/Documents/github/PureCN_manuscript/Results/dup_analyte.csv")$x
+dup_ind = which(dat$SampleId %in% dup_analyte)
+dup_subset = as.data.frame(lapply(dat[dup_ind, ], unlist))
+```
+
+Merge SampleId with analyte 'D' to that with analyte 'W'
+```{r}
+dup_subset$SampleId[c(1,3,5,7,9)] = dup_subset$SampleId[c(2,4,6,8,10)]
+```
+
+Merge duplicates by taking a mean of them
+```{r}
+dup_subset = dup_subset %>%
+  dplyr::group_by(SampleId) %>%
+  dplyr::summarise_all(funs(mean)) %>%
+  as.data.frame(.)
+```
+
+Switch 10 duplicates with 5 merged
+```{r}
+dat = dat[!dat$SampleId %in% dup_analyte,]   # 297 rows --> 287 rows
+dat = rbind(dat, dup_subset)   # 292 x 31
+```
+
+```{r echo=FALSE}
+# clean the environment
+rm(dup_analyte, dup_ind, dup_subset)
+```
+
+##### Save
+```{r eval=FALSE}
+results_dir = "/home/sehyun/Documents/github/PureCN_manuscript/Results"
+saveRDS(dat, 
+        file.path(results_dir, "mutSig/data/sig_all_tumor_only.rds"))
+```
+
+# Matching_normal mode 
+```{r}
+run_type = "matching_normal"
+```
+
+## Capture kit 931070
+##### Make a list with paths to all '_signature.csv' files
+```{r}
+catalog = "931070"
+methods_dir = "/home/sehyun/Documents/github/PureCN_manuscript/Methods"
+source(file.path(methods_dir, "input_info.R"))
+
+Dx_dir = file.path("/data/16tb/CNVworkflow", catalog, "purecn_output", paste0(catalog, "_Dx"))
+cds_dir = file.path(Dx_dir, paste0(run_type, "_cds"))
+fname = list.files(cds_dir)
+
+sig_file = file.path(cds_dir, fname, paste0(fname, "_signatures.csv"))
+sig_file = sig_file[file.exists(sig_file)]
+```
+
+##### Import all mutational signature
+Make a data frame with all the mutational signatures for each sample
+```{r}
+sig_summary = sapply(seq_along(sig_file), function(i) {
+  read.csv(sig_file[i], stringsAsFactors = FALSE)
+}) 
+
+sig_summary = as.data.frame(t(sig_summary))
+names(sig_summary)[1] = "SampleId"
+```
+
+Switch full filenames with barcode
+```{r}
+# load full filename and barcode sampleMap
+sampleMap = read.csv("/data/16tb/CNVworkflow/931070/sampleMap_931070.csv")
+sampleMap$SampleId = gsub(".bam", "", sampleMap$filename)
+sampleMap$analyte = str_extract(sampleMap$barcode, "TCGA.{16}")
+
+for (i in 1:nrow(sig_summary)) {
+  sig_summary[i, 1] = sampleMap[sampleMap$SampleId == sig_summary[i, 1], ]$analyte
+}
+
+sig_matching_normal_931070 = sig_summary
+```
+
+```{r echo=FALSE}
+# clean the environment
+rm(sig_summary, bed, catalog, kit, cds_dir, Dx_dir, fname, sig_file, sampleMap, i, methods_dir)
+```
+
+## Capture kit S0293689
+##### Make a list with paths to all '_signature.csv' files
+```{r}
+catalog = "S0293689"
+methods_dir = "/home/sehyun/Documents/github/PureCN_manuscript/Methods"
+source(file.path(methods_dir, "input_info.R"))
+
+Dx_dir = file.path("/data/16tb/CNVworkflow", catalog, "purecn_output", paste0(catalog, "_Dx"))
+cds_dir = file.path(Dx_dir, paste0(run_type, "_cds"))
+fname = list.files(cds_dir)
+
+sig_file = file.path(cds_dir, fname, paste0(fname, "_signatures.csv"))
+sig_file = sig_file[file.exists(sig_file)]
+```
+
+##### Import all mutational signature
+Make a data frame with all the mutational signatures for each sample
+```{r}
+sig_summary = sapply(seq_along(sig_file), function(i) {
+  read.csv(sig_file[i], stringsAsFactors = FALSE)
+}) 
+
+sig_summary = as.data.frame(t(sig_summary))
+names(sig_summary)[1] = "SampleId"
+```
+
+Switch full filenames with barcode
+```{r}
+# load full filename and barcode sampleMap
+sampleMap = read.csv("/data/16tb/CNVworkflow/S0293689/sampleMap_S0293689.csv")
+sampleMap$SampleId = gsub(".bam", "", sampleMap$filename)
+sampleMap$analyte = str_extract(sampleMap$barcode, "TCGA.{16}")
+
+for (i in 1:nrow(sig_summary)) {
+  sig_summary[i, 1] = sampleMap[sampleMap$SampleId == sig_summary[i, 1], ]$analyte
+}
+
+sig_matching_normal_S0293689 = sig_summary
+```
+
+```{r echo=FALSE, warning=FALSE}
+# clean the environment
+rm(sig_summary, bed, catalog, kit, cds_dir, Dx_dir, fname, sig_file, sampleMap, i, methods_dir)
+```
+
+## Merge duplicates
+Merge mutational signature outputs from both kits with matching_normal samples
+```{r}
+dat = rbind(sig_matching_normal_931070, sig_matching_normal_S0293689)
+```
+
+There are total 30 duplicated samples (25 analyzed by both kits + 5 analyzed from different analytes)   
+
+##### 1. duplicates from both kits
+```{r}
+dup_kit = unlist(intersect(sig_matching_normal_931070$SampleId, 
+                           sig_matching_normal_S0293689$SampleId))
+dup_ind = which(dat$SampleId %in% dup_kit)
+dup_subset = as.data.frame(lapply(dat[dup_ind, ], unlist))
+```
+
+Merge duplicates by taking a mean of them
+```{r}
+dup_subset = dup_subset %>%
+  dplyr::group_by(SampleId) %>%
+  dplyr::summarise_all(funs(mean)) %>%
+  as.data.frame(.)
+```
+
+Switch 50 duplicates with 25 merged
+```{r}
+dat = dat[!dat$SampleId %in% dup_kit,]   # 307 rows --> 257 rows
+dat = rbind(dat, dup_subset)   # 282 x 31
+```
+
+```{r echo=FALSE}
+# clean the environment
+rm(dup_kit, dup_ind, dup_subset)
+```
+
+##### 2. duplicates from different analytes
+```{r}
+dup_analyte = read.csv("~/Documents/github/PureCN_manuscript/Results/dup_analyte.csv")$x
+dup_ind = which(dat$SampleId %in% dup_analyte)
+dup_subset = as.data.frame(lapply(dat[dup_ind, ], unlist))
+```
+
+Merge SampleId with analyte 'D' to that with analyte 'W'
+```{r}
+dup_subset$SampleId[c(1,3,5,7,9)] = dup_subset$SampleId[c(2,4,6,8,10)]
+```
+
+Merge duplicates by taking a mean of them
+```{r}
+dup_subset = dup_subset %>%
+  dplyr::group_by(SampleId) %>%
+  dplyr::summarise_all(funs(mean)) %>%
+  as.data.frame(.)
+```
+
+Switch 10 duplicates with 5 merged
+```{r}
+dat = dat[!dat$SampleId %in% dup_analyte,]   # 282 rows --> 272 rows
+dat = rbind(dat, dup_subset)   # 277 x 31
+```
+
+```{r echo=FALSE}
+# clean the environment
+rm(dup_analyte, dup_ind, dup_subset)
+```
+
+##### Save
+```{r eval=FALSE}
+results_dir = "/home/sehyun/Documents/github/PureCN_manuscript/Results"
+saveRDS(dat, 
+        file.path(results_dir, "mutSig/data/sig_all_matching_normal.rds"))
+```

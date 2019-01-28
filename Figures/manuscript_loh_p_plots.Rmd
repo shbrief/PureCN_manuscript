@@ -1,0 +1,180 @@
+---
+title: "LOH Plots (Paired)"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(cowplot)
+})
+```
+
+```{r}
+library(dplyr)
+library(cowplot)
+```
+
+## Load LOH output
+```{r}
+results_dir = "/home/sehyun/Documents/github/PureCN_manuscript/Results/LOH"
+TP53_all = read.csv(file.path(results_dir, "extdata/TP53_all.tsv"))[,-1]
+HLA_all = read.csv(file.path(results_dir, "extdata/HLA_all.tsv"))[,-1]
+```
+
+## TP53
+Total 223 obs.
+```{r}
+both = which(TP53_all$TP53_LOH == TRUE & TP53_all$TP53_LOH_p == TRUE)   # 223
+neither = which(TP53_all$TP53_LOH == FALSE & TP53_all$TP53_LOH_p == FALSE)   # 0
+ABSOLUTE = which(TP53_all$TP53_LOH == TRUE & TP53_all$TP53_LOH_p == FALSE)   # 0
+PCN = which(TP53_all$TP53_LOH == FALSE & TP53_all$TP53_LOH_p == TRUE)   # 0
+
+TP53_all$abs_p = NA
+TP53_all$abs_p[both] = "1"
+TP53_all$abs_p[neither] = "2"
+TP53_all$abs_p[ABSOLUTE] = "3"
+TP53_all$abs_p[PCN] = "4"
+
+
+TP53_all$abs_p = factor(TP53_all$abs_p, 
+                  labels = c("Both", "Neither", "ABSOLUTE", "PureCN"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+
+TP53 = table(TP53_all$abs_p)
+```
+
+## HLA
+Total 140 obs.
+
+##### HLA-A
+```{r}
+both = which(HLA_all$HLAA_LOH == TRUE & HLA_all$HLAA_LOH_p == TRUE)   # 38
+neither = which(HLA_all$HLAA_LOH == FALSE & HLA_all$HLAA_LOH_p == FALSE)   # 96
+ABSOLUTE = which(HLA_all$HLAA_LOH == TRUE & HLA_all$HLAA_LOH_p == FALSE)   # 4
+PCN = which(HLA_all$HLAA_LOH == FALSE & HLA_all$HLAA_LOH_p == TRUE)   # 2
+
+HLA_all$HLAA_abs_p = NA
+HLA_all$HLAA_abs_p[both] = "1"
+HLA_all$HLAA_abs_p[neither] = "2"
+HLA_all$HLAA_abs_p[ABSOLUTE] = "3"
+HLA_all$HLAA_abs_p[PCN] = "4"
+
+
+HLA_all$HLAA_abs_p = factor(HLA_all$HLAA_abs_p, 
+                  labels = c("Both", "Neither", "ABSOLUTE", "PureCN"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+
+HLAA = table(HLA_all$HLAA_abs_p)
+```
+
+##### HLA-B
+```{r}
+both = which(HLA_all$HLAB_LOH == TRUE & HLA_all$HLAB_LOH_p == TRUE)   # 37
+neither = which(HLA_all$HLAB_LOH == FALSE & HLA_all$HLAB_LOH_p == FALSE)   # 98
+ABSOLUTE = which(HLA_all$HLAB_LOH == TRUE & HLA_all$HLAB_LOH_p == FALSE)   # 4
+PCN = which(HLA_all$HLAB_LOH == FALSE & HLA_all$HLAB_LOH_p == TRUE)   # 1
+
+HLA_all$HLAB_abs_p = NA
+HLA_all$HLAB_abs_p[both] = "1"
+HLA_all$HLAB_abs_p[neither] = "2"
+HLA_all$HLAB_abs_p[ABSOLUTE] = "3"
+HLA_all$HLAB_abs_p[PCN] = "4"
+
+
+HLA_all$HLAB_abs_p = factor(HLA_all$HLAB_abs_p, 
+                  labels = c("Both", "Neither", "ABSOLUTE", "PureCN"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+
+HLAB = table(HLA_all$HLAB_abs_p)
+```
+
+##### HLA-C
+```{r}
+both = which(HLA_all$HLAC_LOH == TRUE & HLA_all$HLAC_LOH_p == TRUE)   # 37
+neither = which(HLA_all$HLAC_LOH == FALSE & HLA_all$HLAC_LOH_p == FALSE)   # 97
+ABSOLUTE = which(HLA_all$HLAC_LOH == TRUE & HLA_all$HLAC_LOH_p == FALSE)   # 4
+PCN = which(HLA_all$HLAC_LOH == FALSE & HLA_all$HLAC_LOH_p == TRUE)   # 2
+
+HLA_all$HLAC_abs_p = NA
+HLA_all$HLAC_abs_p[both] = "1"
+HLA_all$HLAC_abs_p[neither] = "2"
+HLA_all$HLAC_abs_p[ABSOLUTE] = "3"
+HLA_all$HLAC_abs_p[PCN] = "4"
+
+
+HLA_all$HLAC_abs_p = factor(HLA_all$HLAC_abs_p, 
+                  labels = c("Both", "Neither", "ABSOLUTE", "PureCN"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+
+HLAC = table(HLA_all$HLAC_abs_p)
+```
+
+
+## Summary for stacked bar chart
+```{r}
+TP53_abs_p_value = round(TP53/sum(TP53)*100, digits = 1)
+HLAA_abs_p_value = round(HLAA/sum(HLAA)*100, digits = 1)
+HLAB_abs_p_value = round(HLAB/sum(HLAB)*100, digits = 1)
+HLAC_abs_p_value = round(HLAC/sum(HLAC)*100, digits = 1)
+
+condition = rep(factor(c("Both", "Neither", "ABSOLUTE", "PureCN"), 
+                       levels = c("PureCN", "ABSOLUTE", "Neither", "Both")), 4)
+
+value = c(TP53_abs_p_value, HLAA_abs_p_value, HLAB_abs_p_value, HLAC_abs_p_value)
+
+type = c(rep("TP53", 4), 
+         rep("HLA-A", 4),
+         rep("HLA-B", 4),
+         rep("HLA-C", 4))
+
+data = data.frame(condition, value, type)
+```
+
+```{r figure.width=8, figure.height= 5}
+LOH_p_plot = ggplot(data, aes(fill=condition, y=value, x = type, order = as.numeric(value))) + 
+  geom_bar(stat="identity", position="fill", width = 0.4) +
+  labs(title = "LOH from Paired") + 
+  theme_light() +
+  theme(plot.title = element_text(size = 14, 
+                                  face = "bold", 
+                                  margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 10, face = "bold"), 
+        axis.text.y = element_text(size = 10, face = "bold"), 
+        # axis.title.x = element_text(size = 12, face = "bold"), 
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 12, face = "bold"),
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), 
+        panel.grid.minor = element_line(),
+        # legend.position = c(0.16, 0.13),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 10, face = "bold"),
+        legend.background = element_rect(fill = NA),
+        # legend.title = element_text(size = 12, face = "bold"),
+        # legend.text = element_text(size = 10, face = "bold"),
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")) +
+  scale_fill_manual(values = c("grey", "dark grey", "tomato", "red"))
+
+LOH_p_plot
+```
+
+
+

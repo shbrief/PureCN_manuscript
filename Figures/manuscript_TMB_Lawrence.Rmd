@@ -1,0 +1,214 @@
+---
+title: "TMB: PureCN vs. Lawrence"
+author: "Sehyun Oh"
+date: "8/1/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE, message=FALSE}
+library(stringr)
+library(ggplot2)
+library(cowplot)
+```
+
+## Load mutation burden counts from Lawrence paper
+```{r}
+lawrence_tmb = read.csv("~/Documents/github/PureCN_Pipeline/analysis/mutation_burden/nature12213-s2 - Table S2.csv")
+table(lawrence_tmb$datatype)
+```
+
+## Subset Ovarian Cancer output
+Clean labels
+```{r}
+ov_tmb = lawrence_tmb[lawrence_tmb$tumor_type == "Ovarian",]
+ov_tmb = ov_tmb[which(ov_tmb$datatype == "exome"),]
+ov_tmb$name[1:20]
+
+ov_tmb$SampleId = gsub("OV", "TCGA", ov_tmb$name)
+ov_tmb$SampleId = str_extract(ov_tmb$SampleId, "TCGA.{8}")
+```
+
+## Load mutation burden counts from PureCN
+```{r}
+out.dir = "~/Documents/github/PureCN_Pipeline/analysis/mutation_burden"
+tmb_931070 = read.table(file.path(out.dir, "931070/931070_mutation_rate"))
+tmb_S0293689 = read.table(file.path(out.dir, "S0293689/S0293689_mutation_rate"))
+
+purecn_tmb = rbind(tmb_S0293689, tmb_931070)
+colnames(purecn_tmb)[1] = "barcode"
+purecn_tmb$SampleId = str_extract(purecn_tmb$barcode, "TCGA.{8}")
+```
+
+##### Out of 307 results from both kits, 50 are processed by both kits (25 from each kits)
+should I average them?
+```{r}
+both_kit = intersect(tmb_931070$sampleID, tmb_S0293689$sampleID)   # length(both_kit) = 25
+tmb_931070_both = tmb_931070[tmb_931070$sampleID %in% both_kit,]
+tmb_S0293689_both = tmb_S0293689[tmb_S0293689$sampleID %in% both_kit,]
+tmb_both = dplyr::left_join(tmb_931070_both, tmb_S0293689_both, by = "sampleID", suffix = c("931070", "S0293689"))
+
+cor_tumor_only = round(cor(tmb_both$mut_tumor_only931070, tmb_both$mut_tumor_onlyS0293689, use = "complete.obs"), 2)
+duplicates_tumor_only = ggplot(tmb_both) +
+  geom_point(aes(x = mut_tumor_only931070, y = mut_tumor_onlyS0293689), alpha = 1/3) + 
+  labs(x = "kit_931070", y = "kit_S0293689", title = "TMB comprison") +
+  geom_abline(col="grey", lwd=0.5)
+ggdraw(add_sub(duplicates_tumor_only, paste("Concordance\ncorrelation =", cor_tumor_only), vpadding=grid::unit(0, "lines"),
+       y = 11.5, x = 0.05, hjust = 0, fontface = "italic", size = 12))
+
+
+plot(tmb_both$mut_tumor_only931070, tmb_both$mut_tumor_onlyS0293689)
+plot(tmb_both$mut_matching931070, tmb_both$mut_matchingS0293689)
+```
+
+For now, just use the samples processed by only one capture kit
+```{r}
+# subset processed by only one kit
+purecn_tmb_unique = purecn_tmb[!(purecn_tmb$barcode %in% both_kit),]
+```
+
+### Combine the mutation rates from PureCN and Lawrence paper
+```{r}
+ov_tmb$mutation_burden = ov_tmb$coding_mutation_rate * 1e+6 
+ov_tmb_subset = ov_tmb[, c("SampleId", "mutation_burden")]
+compare = dplyr::left_join(purecn_tmb_unique, ov_tmb_subset, by = "SampleId")
+```
+
+## Plot PureCN tumor_only against Lawrence paper result
+```{r}
+tmb_plot = ggplot(compare) +
+  geom_point(aes(x = mutation_burden, y = mut_tumor_only), alpha = 1/3) + 
+  labs(x = "from Lawrence Paper", y = "from PureCN (tumor only)", title = "TMB Comparison") +
+  geom_abline(col="grey", lwd=0.5) + 
+  theme_light() +
+  theme(plot.title = element_text(size = 14, face = "bold", margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 10, face = "bold"), axis.text.y = element_text(size = 10, face = "bold"), 
+        axis.title.x = element_text(size = 12, face = "bold"), axis.title.y = element_text(size = 12, face = "bold"),
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), panel.grid.minor = element_line(),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 10, face = "bold"),
+        plot.margin = unit(c(0.5,3,0.2,1), "cm"))
+```
+
+```{r}
+tmb_plot + 
+  scale_x_continuous(limits=c(0, 35), breaks=seq(0,35,5)) +
+  scale_y_continuous(limits=c(0, 35), breaks=seq(0,35,5)) 
+```
+
+### Remove outliers
+```{r}
+compare_rm_outlier = compare[compare$mut_tumor_only < 12 & compare$mutation_burden < 12,]
+cor_rm_outlier = round(cor(compare_rm_outlier$mut_tumor_only, compare_rm_outlier$mutation_burden, use = "complete.obs"), 2)
+```
+
+```{r}
+tmb_plot = ggplot(compare_rm_outlier) +
+  geom_point(aes(x = mutation_burden, y = mut_tumor_only), alpha = 1/3) + 
+  labs(x = "from Lawrence Paper", y = "from PureCN (tumor-only)", title = "TMB Comparison") +
+  geom_abline(col="grey", lwd=0.5) + 
+  theme_light() +
+  theme(plot.title = element_text(size = 14, face = "bold", margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 10, face = "bold"), axis.text.y = element_text(size = 10, face = "bold"), 
+        axis.title.x = element_text(size = 12, face = "bold"), axis.title.y = element_text(size = 12, face = "bold"),
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), panel.grid.minor = element_line(),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 10, face = "bold"),
+        plot.margin = unit(c(0.5,3,0.2,1), "cm"))
+```
+
+```{r}
+tmb_rm_outlier = tmb_plot + 
+                    scale_x_continuous(limits=c(0, 15), breaks=seq(0,15,3)) +
+                    scale_y_continuous(limits=c(0, 15), breaks=seq(0,15,3)) 
+
+ggdraw(add_sub(tmb_rm_outlier, paste("Concordance\ncorrelation =", cor_rm_outlier), vpadding=grid::unit(0, "lines"),
+       y = 11.5, x = 0.05, hjust = 0, fontface = "italic", size = 12))
+```
+
+
+## Plot PureCN matching_normal against Lawrence paper result
+```{r}
+tmb_paired_plot = ggplot(compare) +
+  geom_point(aes(x = mutation_burden, y = mut_matching), alpha = 1/3) + 
+  labs(x = "from Lawrence Paper", y = "from PureCN (paired)", title = "TMB Comparison") +
+  geom_abline(col="grey", lwd=0.5) + 
+  theme_light() +
+  theme(plot.title = element_text(size = 14, face = "bold", margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 10, face = "bold"), axis.text.y = element_text(size = 10, face = "bold"), 
+        axis.title.x = element_text(size = 12, face = "bold"), axis.title.y = element_text(size = 12, face = "bold"),
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), panel.grid.minor = element_line(),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 10, face = "bold"),
+        plot.margin = unit(c(0.5,3,0.2,1), "cm"))
+```
+
+```{r}
+tmb_paired_plot + 
+  scale_x_continuous(limits=c(0, 35), breaks=seq(0,35,5)) +
+  scale_y_continuous(limits=c(0, 35), breaks=seq(0,35,5)) 
+```
+
+### Remove outliers
+```{r}
+compare_rm_outlier = compare[compare$mut_matching < 15 & compare$mutation_burden < 15,]
+cor_rm_outlier = round(cor(compare_rm_outlier$mut_matching, compare_rm_outlier$mutation_burden, use = "complete.obs"), 2)
+```
+
+```{r}
+tmb_paired_plot = ggplot(compare_rm_outlier) +
+  geom_point(aes(x = mutation_burden, y = mut_matching), alpha = 1/3) + 
+  labs(x = "from Lawrence Paper", y = "from PureCN (paired)", title = "TMB Comparison") +
+  geom_abline(col="grey", lwd=0.5) + 
+  theme_light() +
+  theme(plot.title = element_text(size = 14, face = "bold", margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 10, face = "bold"), axis.text.y = element_text(size = 10, face = "bold"), 
+        axis.title.x = element_text(size = 12, face = "bold"), axis.title.y = element_text(size = 12, face = "bold"),
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), panel.grid.minor = element_line(),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 10, face = "bold"),
+        plot.margin = unit(c(0.5,3,0.2,1), "cm"))
+```
+
+```{r}
+tmb_rm_outlier = tmb_paired_plot + 
+                    scale_x_continuous(limits=c(0, 15), breaks=seq(0,15,3)) +
+                    scale_y_continuous(limits=c(0, 15), breaks=seq(0,15,3)) 
+
+ggdraw(add_sub(tmb_rm_outlier, paste("Concordance\ncorrelation =", cor_rm_outlier), vpadding=grid::unit(0, "lines"),
+       y = 11.5, x = 0.05, hjust = 0, fontface = "italic", size = 12))
+```
+
+## Plot PureCN matching_normal against tumor_only
+```{r}
+tmb_purecn = ggplot(compare) +
+  geom_point(aes(x = mut_tumor_only, y = mut_matching), alpha = 1/3) + 
+  labs(x = "Tumor_only", y = "Matchin_normal", title = "Dx.R TMB Comparison") +
+  geom_abline(col="grey", lwd=0.5) + 
+  theme_light() +
+  theme(plot.title = element_text(size = 14, face = "bold", margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 10, face = "bold"), axis.text.y = element_text(size = 10, face = "bold"), 
+        axis.title.x = element_text(size = 12, face = "bold"), axis.title.y = element_text(size = 12, face = "bold"),
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), panel.grid.minor = element_line(),
+        legend.title = element_text(size=12, face="bold"),
+        legend.text = element_text(size = 10, face = "bold"),
+        plot.margin = unit(c(0.5,3,0.2,1), "cm"))
+```
+
+```{r}
+tmb_purecn_plot = tmb_purecn + 
+                    scale_x_continuous(limits=c(0, 35), breaks=seq(0,35,5)) +
+                    scale_y_continuous(limits=c(0, 35), breaks=seq(0,35,5)) 
+
+cor_purecn_tmb = round(cor(compare$mut_matching, compare$mut_tumor_only, use = "complete.obs"), 2)
+ggdraw(add_sub(tmb_purecn_plot, paste("Concordance\ncorrelation =", cor_purecn_tmb), vpadding=grid::unit(0, "lines"),
+       y = 11.5, x = 0.05, hjust = 0, fontface = "italic", size = 12))
+```

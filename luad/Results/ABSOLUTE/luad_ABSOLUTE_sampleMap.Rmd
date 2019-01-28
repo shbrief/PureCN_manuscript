@@ -1,0 +1,43 @@
+---
+title: "ABSOLUTE for TCGA-LUAD"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r messgae=FALSE, warning=FALSE}
+library(stringr)
+```
+
+```{r}
+# import ABSOLUTE outputs
+file.dir = "/home/sehyun/Documents/github/PureCN_manuscript/Results/ABSOLUTE/ABSOLUTE_sampleMap"
+ABSOLUTE = read.delim(file.path(file.dir, "ABSOLUTE_Purity_Ploidy.txt"))
+```
+
+```{r}
+manifest_dir = "~/Documents/github/PureCN_manuscript/luad"
+manifest_luad = readRDS(file.path(manifest_dir, "luad_manifest_annot.rds"))
+```
+
+```{r}
+overlap_luad = intersect(str_extract(ABSOLUTE$array, "TCGA.{11}"), str_extract(manifest_luad$barcode, "TCGA.{11}"))
+```
+
+```{r}
+ABSOLUTE_luad = ABSOLUTE[which(str_extract(ABSOLUTE$array, "TCGA.{11}") %in% overlap_luad), ]
+names(ABSOLUTE_luad)[1:2] = c("SampleId", "fullname")
+```
+
+```{r}
+luad_ABS_dir = "~/Documents/github/PureCN_manuscript/luad/Results/ABSOLUTE"
+saveRDS(ABSOLUTE_luad, file = file.path(luad_ABS_dir, "ABSOLUTE_luad.rds"))
+```

@@ -1,0 +1,48 @@
+---
+title: "EDA: benchmark_SGZ"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(stringr)
+})
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+```
+
+## Load outputs from BenchmarkTumorOnly.R
+```{r}
+out.dir_luad = "/data/ovarian/CNVworkflow_LUAD/purecn_output/Benchmark/tumor_only_SGZ"
+output_luad = list.files(out.dir_luad, pattern = ".csv")
+import_luad = file.path(out.dir_luad, output_luad)
+
+benchmark_luad = sapply(seq_along(import_luad), function(i) {
+  read.csv(import_luad[i], stringsAsFactors = FALSE)
+}) 
+
+benchmark_luad= as.data.frame(t(benchmark_luad))
+names(benchmark_luad)[1] = "SampleId"
+benchmark_luad$analyte = str_extract(benchmark_luad$SampleId, "TCGA.{16}")
+```
+
+```{r}
+results_dir = "/home/sehyun/Documents/github/PureCN_manuscript/luad/Results"
+saveRDS(benchmark_luad, 
+        file.path(results_dir, "benchmark/data/all_luad_benchmark_SGZ.rds"))
+```

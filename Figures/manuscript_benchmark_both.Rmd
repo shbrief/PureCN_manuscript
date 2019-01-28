@@ -1,0 +1,251 @@
+---
+title: "BenchmarkTumorOnly Plots - Both"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(cowplot)
+  library(patchwork)
+  library(stringr)
+})
+```
+
+```{r}
+library(dplyr)
+library(cowplot)
+library(patchwork)
+library(stringr)
+```
+
+```{r echo=FALSE}
+source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/manuscript_figure_style.R")
+source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/non_dup.R")
+```
+
+## Load OV benchmark output
+```{r}
+# PureCN algorithm
+results_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Results"
+benchmark = readRDS(file.path(results_dir, "benchmark/data/all_ovc_benchmark.rds"))
+
+for (i in 2:10) {
+  benchmark[, i] = as.numeric(benchmark[, i])
+}
+
+# SGZ algorithm
+benchmark_SGZ = readRDS(file.path(results_dir, "benchmark/data/all_ovc_benchmark_SGZ.rds"))
+
+for (i in 2:8) {
+  benchmark_SGZ[, i] = as.numeric(benchmark_SGZ[, i])
+}
+
+# Combine both
+benchmark$algorithm = "PureCN"
+benchmark_SGZ$algorithm = "SGZ"
+merge_column = c("SampleId", "Purity", "Ploidy", "Median.Coverage", "Callrate", "algorithm")
+
+benchmark_OV = rbind(benchmark[, merge_column], benchmark_SGZ[, merge_column])
+benchmark_OV$Sample = "OV"
+
+# SGZ failed to get the results from 2 samples
+benchmark_OV = benchmark_OV[which(str_extract(benchmark_OV$SampleId, "TCGA.{11}") %in% ovc_236),]
+```
+
+##### Relationship of Callrate vs. Purity and Median Coverage 
+*only with PureCN algorithm, not SGZ*
+```{r}
+summary(lm(Callrate ~ Purity + Median.Coverage, data = benchmark))
+```
+
+## Load LUAD benchmark output
+```{r}
+# PureCN algorithm
+results_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/luad/Results"
+benchmark = readRDS(file.path(results_dir, "benchmark/data/all_luad_benchmark.rds"))
+for (i in 2:10) {
+  benchmark[, i] = as.numeric(benchmark[, i])
+}
+
+# SGZ algorithm
+benchmark_SGZ = readRDS(file.path(results_dir, "benchmark/data/all_luad_benchmark_SGZ.rds"))
+
+for (i in 2:8) {
+  benchmark_SGZ[, i] = as.numeric(benchmark_SGZ[, i])
+}
+
+# Combine both
+benchmark$algorithm = "PureCN"
+benchmark_SGZ$algorithm = "SGZ"
+merge_column = c("SampleId", "Purity", "Ploidy", "Median.Coverage", "Callrate", "algorithm")
+
+benchmark_LUAD = rbind(benchmark[, merge_column], benchmark_SGZ[, merge_column])
+benchmark_LUAD$Sample = "LUAD"
+
+# PureCN and SGZ failed to get the results from 1 and 4 samples, respectively.
+benchmark_LUAD = benchmark_LUAD[which(str_extract(benchmark_LUAD$SampleId, "TCGA.{11}") %in% luad_442),]
+```
+
+##### Relationship of Callrate vs. Purity and Median Coverage 
+*only with PureCN algorithm, not SGZ*
+```{r}
+summary(lm(Callrate ~ Purity + Median.Coverage, data = benchmark))
+```
+
+## Plot Purity vs. Callrate
+```{r}
+benchmark_all = rbind(benchmark_LUAD, benchmark_OV)
+```
+
+##### callrate_plot
+```{r fig.width = 4.5, fig.height = 4.5}
+benchmark = benchmark_all[which(benchmark_all$Sample == "OV"),]
+ov_callrate_plot = ggplot(benchmark, aes(Purity, Callrate, col = algorithm)) +
+  geom_point(alpha = 1/3) + 
+  scale_color_manual(values=c("red", "navy")) +
+  labs(x = "Purity",
+       y = "Callrate", 
+       title = "C. TCGA-OV") + 
+  customPlot +
+  theme(legend.position = c(0.16, 0.13),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12, face = "plain"),
+        legend.background = element_rect(fill = NA)) +
+  scale_x_continuous(limits=c(0, 1), breaks=seq(0,1,0.2)) +
+  scale_y_continuous(limits=c(0, 1), breaks=seq(0,1,0.2))
+```
+
+##### SGZ_callrate_plot
+```{r fig.width = 4.5, fig.height = 4.5}
+benchmark = benchmark_all[which(benchmark_all$Sample == "LUAD"),]
+luad_callrate_plot = ggplot(benchmark, aes(Purity, Callrate, col = algorithm)) +
+  geom_point(alpha = 1/3) + 
+  scale_color_manual(values=c("red", "navy")) +
+  labs(x = "Purity",
+       y = "Callrate", 
+       title = "D. TCGA-LUAD") + 
+  customPlot +
+  theme(legend.position = c(0.16, 0.13),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 12, face = "plain"),
+        legend.background = element_rect(fill = NA)) +
+  scale_x_continuous(limits=c(0, 1), breaks=seq(0,1,0.2)) +
+  scale_y_continuous(limits=c(0, 1), breaks=seq(0,1,0.2))
+```
+
+```{r fig.width = 9, fig.height = 4.5}
+ov_callrate_plot + luad_callrate_plot
+
+# final_fig_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+# saveRDS(ov_callrate_plot, file = file.path(final_fig_dir, "Fig2C.ov_callrate_plot.rds"))
+# saveRDS(luad_callrate_plot, file = file.path(final_fig_dir, "Fig2D.luad_callrate_plot.rds"))
+```
+
+## PureCN algorithm outputs
+### Plot SNV calling accuracy using PureCN algorithm
+```{r fig.width = 5, fig.height = 5.5}
+rm(benchmark)
+benchmark = benchmark_all[which(benchmark_all$algorithm == "PureCN"),]
+cov_plot_purecn = ggplot(benchmark, aes(Median.Coverage, Callrate, col = Sample)) + 
+  geom_point(alpha = 1/3) + 
+  scale_color_manual(values=c("navy", "red")) +
+  labs(title = "A. PureCN",
+       x = "Median Coverage") + 
+  customPlot +
+  theme(legend.position = c(0.24, 0.78),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 8, face = "plain"),
+        plot.margin = unit(c(0.5,0.5,0.2,0.2), "cm"),
+        legend.background = element_rect(fill = NA)) +
+  # scale_x_continuous(limits=c(0, 1), breaks=seq(0,1,0.2)) +
+  # scale_y_continuous(limits=c(0, 1), breaks=seq(0,1,0.2))
+  facet_wrap(~round(Purity, digits = 1))
+```
+
+## PureCN algorithm outputs
+### Plot SNV calling accuracy using SGZ algorithm
+```{r fig.width = 5, fig.height = 5.5}
+rm(benchmark)
+benchmark = benchmark_all[which(benchmark_all$algorithm == "SGZ"),]
+cov_plot_sgz = ggplot(benchmark, aes(Median.Coverage, Callrate, col = Sample)) + 
+  geom_point(alpha = 1/3) + 
+  scale_color_manual(values=c("navy", "red")) +
+  labs(title = "B. SGZ",
+       x = "Median Coverage") + 
+  customPlot +
+  theme(legend.position = c(0.24, 0.78),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 8, face = "plain"),
+        plot.margin = unit(c(0.5,0.5,0.2,0.2), "cm"),
+        legend.background = element_rect(fill = NA)) +
+  # scale_x_continuous(limits=c(0, 1), breaks=seq(0,1,0.2)) +
+  # scale_y_continuous(limits=c(0, 1), breaks=seq(0,1,0.2))
+  facet_wrap(~round(Purity, digits = 1))
+```
+
+```{r fig.width = 10, fig.height = 5.5}
+cov_plot_purecn + cov_plot_sgz
+ 
+final_fig_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+saveRDS(cov_plot_purecn, file = file.path(final_fig_dir, "SFig4A.cov_plot_purecn.rds"))
+saveRDS(cov_plot_sgz, file = file.path(final_fig_dir, "SFig4B.cov_plot_sgz.rds"))
+```
+
+## Callrate summary between OV and LUAD for each algorithm
+```{r echo=FALSE}
+s1 = summary(benchmark_OV[which(benchmark_OV$algorithm == "PureCN"),]$Callrate)
+s2 = summary(benchmark_LUAD[which(benchmark_LUAD$algorithm == "PureCN"),]$Callrate)
+s3 = summary(benchmark_OV[which(benchmark_OV$algorithm == "SGZ"),]$Callrate)
+s4 = summary(benchmark_LUAD[which(benchmark_LUAD$algorithm == "SGZ"),]$Callrate)
+
+summary = rbind(s1, s2, s3, s4) %>% as.data.frame(.)
+info = data.frame(Cancer = c("OV", "LUAD", "OV", "LUAD"), Algorithm = c("PureCN", "PureCN", "SGZ", "SGZ"))
+
+bind_cols(info, summary)
+```
+
+```{r message=FALSE, echo=FALSE}
+callrate_hist = ggplot(benchmark_all, aes(x = algorithm, y = Callrate, col = Sample)) +
+  geom_boxplot() + 
+  scale_color_manual(values=c("navy", "red")) +
+  labs(title = "G. Callrate summary") + 
+  theme_classic() +
+  theme(legend.position = c(0.15, 0.12),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 10, face = "plain"),
+        plot.title = element_text(size = 14, face = "bold"),
+        axis.text.x = element_text(size = 12, face = "bold"), 
+        axis.text.y = element_text(size = 10, face = "bold"), 
+        axis.title.x = element_blank(),
+        axis.title.y = element_text("Callrate", size = 12, face = "bold"),
+        plot.margin = unit(c(0.5,0.5,0.2,0.2), "cm"),
+        legend.background = element_rect(fill = NA),
+        panel.border = element_rect(colour = "grey", fill = NA, size = 0.5)
+)
+```
+
+```{r eval=FALSE, fig.width = 4, fig.height = 4.5}
+callrate_hist
+
+# final_fig_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/final"
+# saveRDS(callrate_hist, file = file.path(final_fig_dir, "Fig2G.callrate_hist.rds"))
+```
+
+
+```{r}
+sessionInfo()
+```

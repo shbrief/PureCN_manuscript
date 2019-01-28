@@ -1,0 +1,236 @@
+---
+title: "LUAD Mutational Signature Plots"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(cowplot)
+})
+```
+
+```{r}
+library(dplyr)
+library(cowplot)
+```
+
+# Mutation Sinature Stacked Barplot
+## Load mutSig and mut_count data
+```{r}
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/luad/Results"
+mut_count = read.table(file.path(data_dir, "TMB/extdata/931070_mut_count.tsv"))
+names(mut_count)[1] = "SampleId"
+
+sig_t = readRDS(file.path(data_dir, "mutSig/data/luad_sig_all_tumor_only_2.rds"))   # 442 obs.
+sig_p = readRDS(file.path(data_dir, "mutSig/data/luad_sig_all_matching_normal.rds"))   # 440 obs.
+```
+
+Subset 440 common samples (for 2 samples --> Not enough somatic calls to deconstruct signatures.)   
+- C509.TCGA-49-AARR-01A-11D-A410-08.1_gdc_realn   
+- C509.TCGA-86-A4P8-01A-11D-A24P-08.3_gdc_realn
+```{r}
+library(stringr)
+x = intersect(str_extract(sig_t$SampleId, "TCGA.{11}"), str_extract(sig_p$SampleId, "TCGA.{11}"))
+sig_t = sig_t[which(str_extract(sig_t$SampleId, "TCGA.{11}") %in% x),]
+sig_p = sig_p[which(str_extract(sig_p$SampleId, "TCGA.{11}") %in% x),]
+```
+
+## Subset with Signature.3 and Signature.1
+```{r message=FALSE}
+# subset only Signature.3
+sig_t_sub = sig_t[,c("SampleId", "Signature.1", "Signature.2", "Signature.13", "Signature.4", "Signature.6")] 
+sig_p_sub = sig_p[,c("SampleId", "Signature.1", "Signature.2", "Signature.13", "Signature.4", "Signature.6")] 
+
+# change the data type = unlist
+sig_t_sub = lapply(sig_t_sub, unlist) %>% as.data.frame()
+sig_p_sub = lapply(sig_p_sub, unlist) %>% as.data.frame()
+
+sig_t_sub$Signature.2_13 = sig_t_sub$Signature.2 + sig_t_sub$Signature.13
+sig_p_sub$Signature.2_13 = sig_p_sub$Signature.2 + sig_p_sub$Signature.13
+
+luad_sig = left_join(sig_t_sub, sig_p_sub, by = "SampleId", suffix = c(".t", ".p"))
+luad_sig$SampleId = stringr::str_extract(luad_sig$SampleId, "TCGA.{24}")
+luad_sig = left_join(luad_sig, mut_count, by = "SampleId")   # 440 obs.
+```
+
+## Samples with at least 50 mutations
+```{r}
+luad_sig = luad_sig[which(luad_sig$TMB_tumor > 50 & luad_sig$TMB_paired > 50),]   # 368 obs.
+```
+
+## Signature.1
+```{r}
+agree_yes = which(luad_sig$Signature.1.t != 0 & luad_sig$Signature.1.p != 0)   # 144 (both)
+agree_no = which(luad_sig$Signature.1.t == 0 & luad_sig$Signature.1.p == 0)   # 178 (neither)
+disagree_t_no = which(luad_sig$Signature.1.t == 0 & luad_sig$Signature.1.p != 0)   # 51 (only p)
+disagree_p_no = which(luad_sig$Signature.1.t != 0 & luad_sig$Signature.1.p == 0)  # 25 (only t)
+```
+
+```{r}
+luad_sig$conc_1 = NA
+luad_sig$conc_1[agree_yes] = "1"
+luad_sig$conc_1[agree_no] = "2"
+luad_sig$conc_1[disagree_p_no] = "3"
+luad_sig$conc_1[disagree_t_no] = "4"
+
+
+luad_sig$conc_1 = factor(luad_sig$conc_1, 
+                  labels = c("Both", "Neither", "Tumor-only", "Paired"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+```
+
+```{r}
+table(luad_sig$conc_1)
+```
+
+## Signature.4
+```{r}
+agree_yes = which(luad_sig$Signature.4.t != 0 & luad_sig$Signature.4.p != 0)   # 308 (both)
+agree_no = which(luad_sig$Signature.4.t == 0 & luad_sig$Signature.4.p == 0)   # 44 (neither)
+disagree_t_no = which(luad_sig$Signature.4.t == 0 & luad_sig$Signature.4.p != 0)   # 8 (only p)
+disagree_p_no = which(luad_sig$Signature.4.t != 0 & luad_sig$Signature.4.p == 0)  # 8 (only t)
+```
+
+```{r}
+luad_sig$conc_4 = NA
+luad_sig$conc_4[agree_yes] = "1"
+luad_sig$conc_4[agree_no] = "2"
+luad_sig$conc_4[disagree_p_no] = "3"
+luad_sig$conc_4[disagree_t_no] = "4"
+
+
+luad_sig$conc_4 = factor(luad_sig$conc_4, 
+                  labels = c("Both", "Neither", "Tumor-only", "Paired"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+```
+
+```{r}
+table(luad_sig$conc_4)
+```
+
+## Signature.6
+```{r}
+agree_yes = which(luad_sig$Signature.6.t != 0 & luad_sig$Signature.6.p != 0)   # 76 (both)
+agree_no = which(luad_sig$Signature.6.t == 0 & luad_sig$Signature.6.p == 0)   # 202 (neither)
+disagree_t_no = which(luad_sig$Signature.6.t == 0 & luad_sig$Signature.6.p != 0)   # 53 (only p)
+disagree_p_no = which(luad_sig$Signature.6.t != 0 & luad_sig$Signature.6.p == 0)  # 37 (only t)
+```
+
+```{r}
+luad_sig$conc_6 = NA
+luad_sig$conc_6[agree_yes] = "1"
+luad_sig$conc_6[agree_no] = "2"
+luad_sig$conc_6[disagree_p_no] = "3"
+luad_sig$conc_6[disagree_t_no] = "4"
+
+
+luad_sig$conc_6 = factor(luad_sig$conc_6, 
+                  labels = c("Both", "Neither", "Tumor-only", "Paired"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+```
+
+```{r}
+table(luad_sig$conc_6)
+```
+
+## Signature.2_13
+```{r}
+agree_yes = which(luad_sig$Signature.2_13.t != 0 & luad_sig$Signature.2_13.p != 0)   # 146 (both)
+agree_no = which(luad_sig$Signature.2_13.t == 0 & luad_sig$Signature.2_13.p == 0)   # 203 (neither)
+disagree_t_no = which(luad_sig$Signature.2_13.t == 0 & luad_sig$Signature.2_13.p != 0)   # 10 (only p)
+disagree_p_no = which(luad_sig$Signature.2_13.t != 0 & luad_sig$Signature.2_13.p == 0)  # 9 (only t)
+```
+
+```{r}
+luad_sig$conc_2_13 = NA
+luad_sig$conc_2_13[agree_yes] = "1"
+luad_sig$conc_2_13[agree_no] = "2"
+luad_sig$conc_2_13[disagree_p_no] = "3"
+luad_sig$conc_2_13[disagree_t_no] = "4"
+
+
+luad_sig$conc_2_13 = factor(luad_sig$conc_2_13, 
+                  labels = c("Both", "Neither", "Tumor-only", "Paired"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+```
+
+```{r}
+table(luad_sig$conc_2_13)
+```
+
+
+```{r}
+# stacked bar plot
+sig1_value = round(table(luad_sig$conc_1)/nrow(luad_sig)*100, digits = 1)
+sig4_value = round(table(luad_sig$conc_4)/nrow(luad_sig)*100, digits = 1)
+sig6_value = round(table(luad_sig$conc_6)/nrow(luad_sig)*100, digits = 1)
+sig2_13_value = round(table(luad_sig$conc_2_13)/nrow(luad_sig)*100, digits = 1)
+condition = rep(factor(names(table(luad_sig$conc_2_13)), levels = c("Paired", "Tumor-only", "Neither", "Both")), 4)
+type = c(rep("Sig.1",4), rep("Sig.4",4), rep("Sig.6",4), rep("Sig.2+13",4))
+data = data.frame(condition, value = c(sig1_value, sig4_value, sig6_value, sig2_13_value), type)
+```
+
+```{r}
+rbind(LUAD_mutSig1 = table(luad_sig$conc_1), 
+      LUAD_mutSig4 = table(luad_sig$conc_4), 
+      LUAD_mutSig6 = table(luad_sig$conc_6), 
+      LUAD_mutSig2_13 = table(luad_sig$conc_2_13))
+```
+
+```{r eval=FALSE}
+saveRDS(data, file = "~/Documents/github/PureCN_manuscript/luad/Results/mutSig/data/luad_mutSig.rds")
+```
+
+```{r fig.width = 6, fi.height = 5}
+luad_mutSig_plot = ggplot(data, aes(fill=condition, y=value, x = type, order = as.numeric(value))) + 
+  geom_bar(stat="identity", position="fill", width = 0.4) +
+  labs(title = "C. TCGA-LUAD") + 
+  theme_light() +
+  theme(plot.title = element_text(size = 14, 
+                                  face = "bold", 
+                                  margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 12, face = "bold"), 
+        axis.text.y = element_text(size = 10, face = "bold"), 
+        axis.title.x = element_blank(),
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), 
+        panel.grid.minor = element_line(),
+        # legend.position = c(0.16, 0.13),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 10, face = "bold"),
+        legend.background = element_rect(fill = NA),
+        # legend.title = element_text(size = 12, face = "bold"),
+        # legend.text = element_text(size = 10, face = "bold"),
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")) +
+  scale_y_continuous(labels = scales::percent) + ylab("Concordance") + 
+  scale_fill_manual(values = c("grey", "dark grey", "tomato", "red"))
+
+luad_mutSig_plot
+```
+
+```{r eval=FALSE}
+saveRDS(luad_mutSig_plot, file = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/Fig3C.luad_mutSig.rds")
+```
+
+```{r}
+sessionInfo()
+```
+

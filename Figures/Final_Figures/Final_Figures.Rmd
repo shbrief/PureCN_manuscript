@@ -1,0 +1,165 @@
+---
+title: "CNVworkflow Figures"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+if (!"pathwork" %in% installed.packages())
+    devtools::install_github("thomasp85/patchwork")
+
+suppressPackageStartupMessages({
+  library(patchwork)
+})
+```
+
+```{r}
+library(patchwork)
+```
+
+## Figure 1
+* File under `/Users/sehyunoh/wallabe4_backup/github/PureCN_manuscript_backup/Figures`   
+    + F1A/B: `manuscript_puri_ploi.Rmd`
+    + F1E: `manuscript_loh_t_plots.Rmd`
+* File under `/Users:/sehyunoh/wallabe4_backup/github/PureCN_manuscript_backup/luad/Figures`
+    + F1C/D: `luad_manuscript_puri_ploi.Rmd`
+    + F1F: `luad_manuscript_loh_t_plots.Rmd`
+    
+```{r}
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+F1A = readRDS(file.path(data_dir, "Fig1A.ovc_puri.rds"))
+F1B = readRDS(file.path(data_dir, "Fig1B.ovc_ploi.rds"))
+F1C = readRDS(file.path(data_dir, "Fig1C.luad_puri.rds"))
+F1D = readRDS(file.path(data_dir, "Fig1D.luad_ploi.rds"))
+
+F1E = readRDS(file.path(data_dir, "Fig1E.ovc_loh.rds"))
+F1F = readRDS(file.path(data_dir, "Fig1F.luad_loh.rds"))
+```
+
+```{r fig.width=8, fig.height=9}
+(F1A | F1B ) / 
+  (F1C | F1D)
+```
+
+```{r fig.width=10, fig.height=3.5}
+F1E | F1F
+```
+
+```{r eval=FALSE, fig.width=5.5, fig.height=7}
+F1E / F1F
+```
+
+## Figure 2
+* File under `/Users/sehyunoh/wallabe4_backup/github/PureCN_manuscript_backup/Figures`   
+    + F2A/E/F: `manuscript_benchmark_plots.Rmd`
+    + F2C/D: `manuscript_benchmark_both.Rmd`
+* File under `/Users:/sehyunoh/wallabe4_backup/github/PureCN_manuscript_backup/luad/Figures`
+    + F2B/G/H: `luad_manuscript_benchmark_plots.Rmd`
+
+```{r}
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+
+F2A = readRDS(file.path(data_dir, "Fig2A.ovc_AUC_gain.rds"))
+F2B = readRDS(file.path(data_dir, "Fig2B.luad_AUC_gain.rds"))
+
+F2C = readRDS(file.path(data_dir, "Fig2C.ov_callrate_plot.rds"))
+F2D = readRDS(file.path(data_dir, "Fig2D.luad_callrate_plot.rds"))
+
+F2E = readRDS(file.path(data_dir, "Fig2E.ov_accuracy.rds"))
+F2F = readRDS(file.path(data_dir, "Fig2F.luad_accuracy.rds"))
+F2G = readRDS(file.path(data_dir, "Fig2G.ov_sgz_accuracy.rds"))
+F2H = readRDS(file.path(data_dir, "Fig2H.luad_sgz_accuracy.rds"))
+```
+
+```{r warning = FALSE, fig.width=16, fig.height=9}
+(F2A | F2B | F2C | F2D) /
+  (F2E | F2F | F2G | F2H)
+```
+
+## Figure 3
+* File under `/Users/sehyunoh/wallabe4_backup/github/PureCN_manuscript_backup/Figures`   
+    + F3A: `manuscript_TMB_both.Rmd`
+    + F3B: `manuscript_mutSig_plots.Rmd`
+* File under `/Users:/sehyunoh/wallabe4_backup/github/PureCN_manuscript_backup/luad/Figures`
+    + F3C: `luad_manuscript_mutSig_plots.Rmd`
+    
+```{r}
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+
+F3A = readRDS(file.path(data_dir, "Fig3A.TMB.rds"))
+F3B = readRDS(file.path(data_dir, "Fig3B.ovc_mutSig.rds"))
+F3C = readRDS(file.path(data_dir, "Fig3C.luad_mutSig.rds"))
+```
+
+```{r fig.width=13.5, fig.height=5.4, eval=FALSE, echo=FALSE}
+F3A + 
+  (F3B + F3C + plot_layout(nrow = 1, width = c(1, 2))) + 
+  plot_layout(nrow = 1, width = c(2, 3.5))
+```
+
+```{r fig.width=4.1, fig.height=4.5}
+F3A
+```
+
+```{r fig.width=8, fig.height=3.5}
+F3B + F3C + plot_layout(nrow = 1, width = c(1, 2))
+```
+
+## Sup. Figure 2
+* File under `/Users/sehyunoh/wallabe4_backup/github/FACETS`   
+    + SF2A/B: `OVC/Results/Figure_FACETS.Rmd`
+    + SF2C/D: `LUAD/Results/Figure_FACETS_luad.Rmd`
+
+```{r}
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+
+SF2A = readRDS(file.path(data_dir, "SFig2A.ovc_puri.rds"))
+SF2B = readRDS(file.path(data_dir, "SFig2B.ovc_ploi.rds"))
+SF2C = readRDS(file.path(data_dir, "SFig2C.luad_puri.rds"))
+SF2D = readRDS(file.path(data_dir, "SFig2D.luad_ploi.rds"))
+```
+
+```{r fig.width=7.5, fig.height=9.3}
+(SF2A | SF2B) / (SF2C | SF2D)
+```
+
+```{r fig.width=7.5, fig.height=4.7, eval=FALSE, echo=FALSE}
+(SF2C | SF2D) 
+```
+
+## Sup. Figure 3
+* File under `/Users/sehyunoh/wallabe4_backup/github/PureCN_manuscript_backup/Figures`   
+    + SF3: `manuscript_concordance_plot.Rmd`
+```{r fig.width=8, fig.height= 5}
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+
+SF3 = readRDS(file.path(data_dir, "SFig3.concordance.rds"))
+SF3
+```
+
+## Sup. Figure 4
+* File under `/Users/sehyunoh/wallabe4_backup/github/PureCN_manuscript_backup/Figures`   
+    + SF4A/B: `manuscript_benchmark_both.Rmd`
+
+```{r}
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+
+SF4A = readRDS(file.path(data_dir, "SFig4A.cov_plot_purecn.rds"))
+SF4B = readRDS(file.path(data_dir, "SFig4B.cov_plot_sgz.rds"))
+```
+
+```{r fig.width = 10, fig.height = 5.5}
+SF4A | SF4B
+```

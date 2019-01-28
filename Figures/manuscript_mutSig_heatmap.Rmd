@@ -1,0 +1,66 @@
+---
+title: "Mutation Signature Heatmap"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(ComplexHeatmap)
+  library(circlize)
+})
+```
+
+```{r}
+library(ComplexHeatmap)
+library(circlize)
+```
+
+## Load data
+```{r}
+data_dir = "/home/sehyun/Documents/github/PureCN_manuscript/Results/mutSig/data"
+tumor_only = readRDS(file.path(data_dir, "sig_all_tumor_only_2.rds"))
+```
+
+```{r}
+ovc_236 = read.csv("~/Documents/github/PureCN_manuscript/Results/duplication/ovc_236.csv")[,2] 
+tumor_only = tumor_only[which(stringr::str_extract(tumor_only$SampleId, "TCGA.{11}") %in% ovc_236),]
+```
+
+```{r}
+tumor_only_matrix = data.matrix(tumor_only[,-1])
+```
+
+## Heatmap: tumor-only
+```{r}
+ovc_heatmap = Heatmap(tumor_only_matrix,
+        col = colorRamp2(c(0, 0.4), c("white", "black")),
+        name = "Signature\nWeight",
+        row_title = "233 TCGA-OV Tumor",
+        row_title_gp = gpar(fontsize = 14, fontface = "bold"),
+        column_title = "C. TCGA-OV: COSMIC MutSig",
+        column_title_gp = gpar(fontsize = 14, fontface = "bold"),
+        show_row_dend = FALSE,
+        show_column_dend = FALSE,
+        show_row_names = FALSE,
+        column_names_gp = gpar(fontsize = 9))
+```
+
+```{r fig.height=4.5, fig.width=6.5}
+ovc_heatmap
+
+out_dir = "~/Documents/github/PureCN_manuscript/Figures/final"
+saveRDS(ovc_heatmap, file = file.path(out_dir, "Fig3C.ovc_heatmap.rds"))
+```

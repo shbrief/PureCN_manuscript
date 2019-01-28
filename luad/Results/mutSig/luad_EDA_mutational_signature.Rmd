@@ -1,0 +1,154 @@
+---
+title: "EAD: LUAD mutational signature from Dx.R output"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(stringr)
+})
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+```
+
+# Tumor_only mode 
+```{r}
+run_type = "tumor_only"
+```
+
+## Capture kit 931070
+##### Make a list with paths to all '_signature.csv' files
+```{r}
+Dx_dir = "/data/ovarian/CNVworkflow_LUAD/purecn_output/Dx"
+cds_dir = file.path(Dx_dir, paste0(run_type, "_cds"))
+fname = list.files(cds_dir)
+
+sig_file = file.path(cds_dir, fname, paste0(fname, "_signatures.csv"))
+sig_file = sig_file[file.exists(sig_file)]
+```
+
+##### Import all mutational signature
+Make a data frame with all the mutational signatures for each sample
+```{r}
+sig_summary = sapply(seq_along(sig_file), function(i) {
+  read.csv(sig_file[i], stringsAsFactors = FALSE)
+}) 
+
+sig_summary = as.data.frame(t(sig_summary))
+names(sig_summary)[1] = "SampleId"
+```
+
+Add submitter_id column to group data
+```{r}
+dat = sig_summary
+```
+
+```{r echo=FALSE}
+# clean the environment
+rm(sig_summary, cds_dir, Dx_dir, fname, sig_file, run_type)
+```
+
+```{r eval=FALSE, echo=FALSE}
+luad_442 = read.csv("~/Documents/github/PureCN_manuscript/luad/Results/duplication/luad_442.csv")[,2]
+dat = dat[which(stringr::str_extract(dat$SampleId, "TCGA.{11}") %in% stringr::str_extract(luad_442, "TCGA.{11}")),]
+
+results_dir = "/home/sehyun/Documents/github/PureCN_manuscript/luad/Results"
+saveRDS(dat, 
+        file.path(results_dir, "mutSig/data/luad_sig_all_tumor_only_2.rds"))
+```
+
+## Merge duplicates
+26 patients' samples are multiplicated generating total 84 different data points.
+
+```{r}
+dup = read.csv("~/Documents/github/PureCN_manuscript/luad/Results/dup_subset.csv")
+dup_ind = which(stringr::str_extract(dat$SampleId, "TCGA.{16}") %in% dup$Sampleid)
+dup_subset = as.data.frame(lapply(dat[dup_ind, ], unlist))
+```
+
+Merge duplicates by taking a mean of them
+```{r}
+dup_subset$SampleId = stringr::str_extract(dup_subset$SampleId, "TCGA.{11}")
+dup_subset = dup_subset %>%
+  dplyr::group_by(SampleId) %>%
+  dplyr::summarise_all(funs(mean)) %>%
+  as.data.frame(.) 
+```
+
+Switch 84 multi-plicates with 26 merged
+```{r}
+dat = dat[!stringr::str_extract(dat$SampleId, "TCGA.{11}") %in% dup$submitter_id,]   # 567 rows --> 483 rows
+dat = rbind(dat, dup_subset)   # 509 x 31
+```
+
+```{r echo=FALSE}
+# clean the environment
+rm(dup, dup_ind, dup_subset)
+```
+
+##### Save
+```{r eval=FALSE}
+results_dir = "/home/sehyun/Documents/github/PureCN_manuscript/luad/Results"
+saveRDS(dat, 
+        file.path(results_dir, "mutSig/data/luad_sig_all_tumor_only.rds"))
+```
+
+# Matching-normal mode 
+```{r}
+run_type = "matching_normal"
+```
+
+## Capture kit 931070
+##### Make a list with paths to all '_signature.csv' files
+```{r}
+Dx_dir = "/data/ovarian/CNVworkflow_LUAD/purecn_output/Dx"
+cds_dir = file.path(Dx_dir, paste0(run_type, "_cds"))
+fname = list.files(cds_dir)
+
+sig_file = file.path(cds_dir, fname, paste0(fname, "_signatures.csv"))
+sig_file = sig_file[file.exists(sig_file)]
+```
+
+##### Import all mutational signature
+Make a data frame with all the mutational signatures for each sample
+```{r}
+sig_summary = sapply(seq_along(sig_file), function(i) {
+  read.csv(sig_file[i], stringsAsFactors = FALSE)
+}) 
+
+sig_summary = as.data.frame(t(sig_summary))
+names(sig_summary)[1] = "SampleId"
+```
+
+Add submitter_id column to group data
+```{r}
+dat = sig_summary
+```
+
+```{r echo=FALSE}
+# clean the environment
+rm(sig_summary, cds_dir, Dx_dir, fname, sig_file, run_type)
+```
+
+```{r eval=FALSE, echo=FALSE}
+results_dir = "/home/sehyun/Documents/github/PureCN_manuscript/luad/Results"
+saveRDS(dat, 
+        file.path(results_dir, "mutSig/data/luad_sig_all_matching_normal.rds"))
+```

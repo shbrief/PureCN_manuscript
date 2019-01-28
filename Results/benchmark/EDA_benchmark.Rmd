@@ -1,0 +1,136 @@
+---
+title: "EDA: benchmark"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(stringr)
+})
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+```
+
+Data cleaning process here is referenced from 'EDA_mutational_signature.Rmd'   
+
+## Load outputs from BenchmarkTumorOnly.R
+```{r}
+out.dir_931070 = "/data/16tb/CNVworkflow/931070/purecn_output/931070_Benchmark/tumor_only"
+output_931070 = list.files(out.dir_931070)
+import_931070 = file.path(out.dir_931070, output_931070)
+
+benchmark_931070 = sapply(seq_along(import_931070), function(i) {
+  read.csv(import_931070[i], stringsAsFactors = FALSE)
+}) 
+
+benchmark_931070= as.data.frame(t(benchmark_931070))
+names(benchmark_931070)[1] = "SampleId"
+
+# Switch full filenames with barcode
+sampleMap = read.csv("/data/16tb/CNVworkflow/931070/sampleMap_931070.csv")
+sampleMap$SampleId = gsub(".bam", "", sampleMap$filename)
+sampleMap$analyte = str_extract(sampleMap$barcode, "TCGA.{16}")
+
+for (i in 1:nrow(benchmark_931070)) {
+  benchmark_931070[i, 1] = sampleMap[sampleMap$SampleId == benchmark_931070[i, 1], ]$analyte
+}
+```
+
+```{r}
+out.dir_S0293689 = "/data/16tb/CNVworkflow/S0293689/purecn_output/S0293689_Benchmark/tumor_only"
+output_S0293689 = list.files(out.dir_S0293689)
+import_S0293689 = file.path(out.dir_S0293689, output_S0293689)
+
+benchmark_S0293689 = sapply(seq_along(import_S0293689), function(i) {
+  read.csv(import_S0293689[i], stringsAsFactors = FALSE)
+}) 
+
+benchmark_S0293689= as.data.frame(t(benchmark_S0293689))
+names(benchmark_S0293689)[1] = "SampleId"
+
+# Switch full filenames with barcode
+sampleMap = read.csv("/data/16tb/CNVworkflow/S0293689/sampleMap_S0293689.csv")
+sampleMap$SampleId = gsub(".bam", "", sampleMap$filename)
+sampleMap$analyte = str_extract(sampleMap$barcode, "TCGA.{16}")
+
+for (i in 1:nrow(benchmark_S0293689)) {
+  benchmark_S0293689[i, 1] = sampleMap[sampleMap$SampleId == benchmark_S0293689[i, 1], ]$analyte
+}
+```
+
+## Merge duplicates
+```{r}
+dat = rbind(benchmark_931070, benchmark_S0293689)   # 307 obs.
+```
+
+There are total 25 duplicated samples
+##### 1. duplicates from both kits
+```{r}
+dup_kit = unlist(dat[duplicated(dat$SampleId),]$SampleId)   # 25 obs.
+dup_ind = which(dat$SampleId %in% dup_kit)
+dup_subset = as.data.frame(lapply(dat[dup_ind, ], unlist))   # 50 obs.
+```
+
+Merge duplicates by taking a mean of them
+```{r}
+dup_subset = dup_subset %>%
+  dplyr::group_by(SampleId) %>%
+  dplyr::summarise_all(funs(mean)) %>%
+  as.data.frame(.) 
+```
+
+Switch 50 duplicates with 25 merged
+```{r}
+dat = dat[!dat$SampleId %in% dup_kit,]   # 307 obs. --> 257 obs.
+dat = rbind(dat, dup_subset)   # 282 obs.
+```
+
+##### 2. duplicates from different analytes
+```{r}
+dup_analyte = read.csv("~/Documents/github/PureCN_manuscript/Results/dup_analyte.csv")$x
+dup_ind = which(dat$SampleId %in% dup_analyte)
+dup_subset = as.data.frame(lapply(dat[dup_ind, ], unlist))   # 10 obs.
+```
+
+Merge SampleId with analyte 'D' to that with analyte 'W'
+```{r}
+dup_subset$SampleId[c(1,3,5,7,9)] = dup_subset$SampleId[c(2,4,6,8,10)]
+```
+
+Merge duplicates by taking a mean of them
+```{r}
+dup_subset = dup_subset %>%
+  dplyr::group_by(SampleId) %>%
+  dplyr::summarise_all(funs(mean)) %>%
+  as.data.frame(.)
+```
+
+Switch 10 duplicates with 5 merged
+```{r}
+dat = dat[!dat$SampleId %in% dup_analyte,]   # 282 rows --> 272 rows
+dat = rbind(dat, dup_subset)   # 277 x 10
+```
+
+
+```{r eval=FALSE}
+results_dir = "/home/sehyun/Documents/github/PureCN_manuscript/Results"
+saveRDS(dat, 
+        file.path(results_dir, "benchmark/data/all_ovc_benchmark.rds"))
+```
+
+

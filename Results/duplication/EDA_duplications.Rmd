@@ -1,0 +1,227 @@
+---
+title: "EDA: duplicated samples"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## TCGA-OV
+```{r}
+manifest = readRDS("~/Documents/github/PureCN_manuscript/Data/ovc_manifest/ovc_manifest_112618.rds")
+
+# Subset manifest with only one bedfile
+bedfiles = manifest$bedfiles
+summary = data.frame()
+for (i in 1:length(bedfiles)){
+  summary = rbind(summary, c(i, length(bedfiles[[i]])))
+  colnames(summary) = c("i", "num_bedfiles")
+}
+
+ovc_mani = manifest[which(summary$num_bedfiles == 1),]
+ovc_mani = ovc_mani[which(ovc_mani$target_capture_kit_catalog_number %in% c("931070", "S0293689")),]
+rm(bedfiles, manifest, summary, i)
+```
+
+```{r}
+ovc_mani = ovc_mani[, c("barcode", "submitter_id", "sample", "analyte", "target_capture_kit_catalog_number")]   # 660 obs.
+```
+
+```{r}
+ovc_t = ovc_mani[which(ovc_mani$sample == 1),]    # class is 'interger'   # 327 obs.
+ovc_n = ovc_mani[which(ovc_mani$sample != 1),]    # 333 obs.
+```
+
+```{r}
+# the number of samples for ABS vs. PureCN (tumor_only) after merging
+length(unique(ovc_t$submitter_id))   # 295 obs.
+
+# the number of samples for tumor_only vs. matched_normal after merging
+length(intersect(unique(ovc_t$submitter_id), unique(ovc_n$submitter_id)))   # 280 obs.
+```
+
+246 non-duplicated submitters
+```{r message=FALSE}
+library(dplyr)
+dup_t = ovc_t %>% group_by(submitter_id) %>% filter(n()>1)   # 64 obs.
+ovc_t = ovc_t[which(!ovc_t$barcode %in% dup_t$barcode),]   # 263 obs. <-- 327 obs.
+dup_n = ovc_n %>% group_by(submitter_id) %>% filter(n()>1)   # 62 obs.
+ovc_n = ovc_n[which(!ovc_n$barcode %in% dup_n$barcode),]   # 271 obs. <-- 333 obs.
+
+matching = which(ovc_t$submitter_id %in% ovc_n$submitter_id)
+bed_subset = ovc_t[matching,]   # 312 obs. (246 obs. after the above filtering)
+```
+
+557 ABSOLUTE outputs are loaded as 'abs_puri_ploi' with the SampleId format, TCGA-XX-XXXX-XX
+```{r}
+script_dir = "/home/sehyun/Documents/github/PureCN_manuscript"
+methods_dir = file.path(script_dir, "Methods")
+results_dir = file.path(script_dir, "Results/purity_ploidy")
+
+source(file.path(methods_dir, "sample_sorting.R"))
+source(file.path(results_dir, "R/puri_ploi_function.R"))
+source(file.path(results_dir, "R/purity_ploidy_ABS.R"))
+```
+
+236 non-duplicated submitters have ABSOLUTE output
+```{r}
+x = intersect(abs_puri_ploi$SampleId, stringr::str_extract(bed_subset$barcode, "TCGA.{11}"))
+length(x)
+write.csv(x, "~/Documents/github/PureCN_manuscript/Results/duplication/ovc_236.csv")
+```
+
+```{r echo=FALSE, eval=FALSE}
+# applying all the filtering in the above chunk --> 246 obs.
+bed_subset_fullname = stringr::str_extract(bed_subset$barcode, "TCGA.{16}")
+write.csv(bed_subset_fullname, "~/Documents/github/PureCN_manuscript/Results/duplication/ovc_246.csv")
+```
+
+```{r message=FALSE, warning=FALSE, eval=FALSE, echo=FALSE}
+data_dir = "~/Documents/github/PureCN_manuscript/Results/purity_ploidy"
+purecn_only = readRDS(file.path(data_dir, "data/purecn_only.rds"))
+purecn_only = purecn_only[,c("fullname", "Purity_tumor_only", "Ploidy_tumor_only", "SampleId_tumor_only", "capture_kit_tumor_only", "Purity_matching_normal", "Ploidy_matching_normal", "capture_kit_matching_normal")]
+purecn_only$submitter_id = stringr::str_extract(purecn_only$fullname, "TCGA.{8}")
+
+x = ovc_t[which(ovc_t$barcode %in% dup_t$barcode),] %>% as.data.frame(.) 
+x$fullname = stringr::str_extract(x$barcode, "TCGA.{16}")
+
+x = cbind(x, purecn_only, by = "submitter_id")
+x[order(x$submitter_id),]
+```
+
+```{r}
+ovc_paired = data.frame()
+for (i in 1:nrow(bed_subset)) {
+  barcode <- bed_subset[i, "barcode"]
+  submitter_id <- bed_subset[i, "submitter_id"]
+  sample <- bed_subset[i, "sample"]
+  analyte <- bed_subset[i, "analyte"]
+  kit <- bed_subset[i, "target_capture_kit_catalog_number"]
+  
+  matching_i <- which(ovc_n$submitter_id == submitter_id)
+  matching_barcode <- ovc_n[matching_i, "barcode"]
+  matching_submitter_id <- ovc_n[matching_i, "submitter_id"]
+  matching_sample <- ovc_n[matching_i, "sample"]
+  matching_analyte <- ovc_n[matching_i, "analyte"]
+  matching_kit <- ovc_n[matching_i, "target_capture_kit_catalog_number"]
+
+  ovc_paired_i = data.frame(barcode, submitter_id, sample, analyte, kit, 
+                            matching_barcode, matching_submitter_id, matching_sample, matching_analyte, matching_kit)
+  ovc_paired = rbind(ovc_paired, ovc_paired_i)
+}
+```
+
+```{r echo=FALSE}
+rm(analyte, barcode, i, kit, matching, matching_analyte, matching_barcode, matching_i, matching_kit, matching_sample, matching_submitter_id, sample, submitter_id, ovc_paired_i)
+```
+
+### the number of unique submitter for TCGA-OV tumor and normal
+```{r}
+length(unique(ovc_t$submitter_id))   # 295 out of 327
+length(unique(ovc_n$submitter_id))   # 302 out of 333
+```
+
+### tumor/normal pair from different analyte types
+```{r}
+sum(ovc_paired$analyte != ovc_paired$matching_analyte)
+# ovc_paired[which(ovc_paired$analyte != ovc_paired$matching_analyte),]
+```
+
+### tumor/normal pair from different capture kit
+```{r}
+sum(ovc_paired$kit != ovc_paired$matching_kit)
+# ovc_paired[which(ovc_paired$kit != ovc_paired$matching_kit),]
+```
+
+### analytes used
+```{r}
+table(ovc_n$analyte)
+table(ovc_t$analyte)
+```
+
+## TCGA-LUAD
+```{r message=FALSE}
+luad_mani = readRDS("~/Documents/github/PureCN_manuscript/luad/luad_manifest_annot.rds")
+luad_download = readr::read_tsv("/data/ovarian/luad_manifest_download_1.tsv")
+luad_mani = luad_mani[which(luad_mani$id %in% luad_download$id),]
+rm(luad_download)
+```
+
+```{r}
+luad_mani = luad_mani[, c("barcode", "submitter_id", "sample", "analyte", "target_capture_kit_catalog_number")]   # 1162 obs.
+```
+
+```{r}
+luad_t = luad_mani[which(luad_mani$sample %in% c("01", "02")),]   # 568 obs. # class is still 'character'
+luad_n = luad_mani[which(!luad_mani$sample %in% c("01", "02")),]   # 594 obs.
+```
+
+```{r}
+# the number of samples for ABS vs. PureCN (tumor_only) after merging
+length(unique(luad_t$submitter_id))   # 507 obs.
+
+# the number of samples for tumor_only vs. matched_normal after merging
+length(intersect(unique(luad_t$submitter_id), unique(luad_n$submitter_id)))   # 506 obs.
+```
+
+```{r message=FALSE}
+library(dplyr)
+dup_t = luad_t %>% group_by(submitter_id) %>% filter(n()>1)   # 89 obs.
+luad_t = luad_t[which(!luad_t$barcode %in% dup_t$barcode),]   # 479 obs. <-- 568 obs.
+dup_n = luad_n %>% group_by(submitter_id) %>% filter(n()>1)   # 144 obs.
+luad_n = luad_n[which(!luad_n$barcode %in% dup_n$barcode),]   # 450 obs. <-- 594 obs.
+
+matching = which(luad_t$submitter_id %in% luad_n$submitter_id)
+bed_subset = luad_t[matching,]   # 444 obs.
+```
+
+```{r}
+luad_paired = data.frame()
+for (i in 1:nrow(bed_subset)) {
+  barcode <- bed_subset[i, "barcode"]
+  submitter_id <- bed_subset[i, "submitter_id"]
+  sample <- bed_subset[i, "sample"]
+  analyte <- bed_subset[i, "analyte"]
+  kit <- bed_subset[i, "target_capture_kit_catalog_number"]
+  
+  matching_i <- which(luad_n$submitter_id == submitter_id)
+  matching_barcode <- luad_n[matching_i, "barcode"]
+  matching_submitter_id <- luad_n[matching_i, "submitter_id"]
+  matching_sample <- luad_n[matching_i, "sample"]
+  matching_analyte <- luad_n[matching_i, "analyte"]
+  matching_kit <- luad_n[matching_i, "target_capture_kit_catalog_number"]
+
+  luad_paired_i = data.frame(barcode, submitter_id, sample, analyte, kit, 
+                            matching_barcode, matching_submitter_id, matching_sample, matching_analyte, matching_kit)
+  luad_paired = rbind(luad_paired, luad_paired_i)
+}
+```
+
+```{r echo=FALSE}
+rm(analyte, barcode, i, kit, matching, matching_analyte, matching_barcode, matching_i, matching_kit, matching_sample, matching_submitter_id, sample, submitter_id, luad_paired_i)
+```
+
+### the number of unique submitter for TCGA-OV tumor and normal
+```{r}
+length(unique(luad_t$submitter_id))   # 479 out of 479
+length(unique(luad_n$submitter_id))   # 450 out of 450
+```
+
+### tumor/normal pair from different analyte types
+```{r}
+sum(luad_paired$analyte != luad_paired$matching_analyte)
+```
+
+### analytes used
+```{r}
+table(luad_n$analyte)
+table(luad_t$analyte)
+```
+

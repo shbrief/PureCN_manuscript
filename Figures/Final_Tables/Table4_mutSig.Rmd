@@ -1,0 +1,113 @@
+---
+title: "Table 4. COSMIC Mutational Signatures"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(patchwork)
+  library(dplyr)
+})
+```
+
+```{r}
+library(patchwork)
+library(dplyr)
+```
+
+```{r}
+source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/non_dup.R")
+```
+
+```{r}
+ov_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Results"
+luad_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/luad/Results"
+```
+
+## OVC mutSig output
+##### Load data
+```{r}
+sig_t = readRDS(file.path(ov_dir, "mutSig/data/sig_all_tumor_only_2.rds"))   # 324 obs.
+sig_p = readRDS(file.path(ov_dir, "mutSig/data/sig_all_matching_normal.rds"))   # 277 obs.
+
+sig_t$SampleId = stringr::str_extract(sig_t$SampleId, "TCGA.{11}")
+sig_p$SampleId = stringr::str_extract(sig_p$SampleId, "TCGA.{11}")
+```
+
+```{r}
+sig_t = sig_t[which(sig_t$SampleId %in% ovc_236),]   # 233 obs.
+sig_p = sig_p[which(sig_p$SampleId %in% ovc_236),]   # 233 obs.
+```
+
+##### Mark the analysis modes
+```{r}
+sig_t$Mode = "Tumor-only"
+sig_p$Mode = "Paired"
+```
+
+##### The final OVC tables
+```{r}
+OVC_mutSig = rbind(sig_t, sig_p) 
+for (i in 2:31) {
+  OVC_mutSig[, i] = as.numeric(OVC_mutSig[, i])
+}
+
+OVC_mutSig$Sample = "OV"
+```
+
+## LUAD mutSig output
+##### Load data
+```{r}
+sig_t = readRDS(file.path(luad_dir, "mutSig/data/luad_sig_all_tumor_only_2.rds"))   # 442 obs.
+sig_p = readRDS(file.path(luad_dir, "mutSig/data/luad_sig_all_matching_normal.rds"))   # 442 obs.
+
+sig_t$SampleId = stringr::str_extract(sig_t$SampleId, "TCGA.{11}")
+sig_p$SampleId = stringr::str_extract(sig_p$SampleId, "TCGA.{11}")
+```
+
+For sig_p, 2 samples are absent, because **Not enough somatic calls to deconstruct signatures.**   
+- C509.TCGA-49-AARR-01A-11D-A410-08.1_gdc_realn   
+- C509.TCGA-86-A4P8-01A-11D-A24P-08.3_gdc_realn
+```{r}
+sig_t = sig_t[which(sig_t$SampleId %in% luad_442),]   # 442 obs.
+sig_p = sig_p[which(sig_p$SampleId %in% luad_442),]   # 440 obs.
+```
+
+##### Mark the analysis modes
+```{r}
+sig_t$Mode = "Tumor-only"
+sig_p$Mode = "Paired"
+```
+
+##### The final LUAD tables
+```{r}
+LUAD_mutSig = rbind(sig_t, sig_p) 
+for (i in 2:31) {
+  LUAD_mutSig[, i] = as.numeric(LUAD_mutSig[, i])
+}
+
+LUAD_mutSig$Sample = "LUAD"
+```
+
+## Combine OV and LUAD mutSig tables
+```{r}
+mutSig_both = rbind(OVC_mutSig, LUAD_mutSig)
+```
+
+```{r eval=FALSE}
+out_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Tables"
+write.csv(mutSig_both, file = file.path(out_dir, "Table4_mutSig.csv"))
+```

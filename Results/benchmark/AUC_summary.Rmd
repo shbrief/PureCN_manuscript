@@ -1,0 +1,78 @@
+---
+title: "TCGA-OV: AUC Summary"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load OVC benchmark output
+```{r}
+source("~/Documents/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
+
+benchmark = readRDS("~/Documents/github/PureCN_manuscript/Results/benchmark/data/all_ovc_benchmark.rds")
+for (i in 2:10) {
+    benchmark[, i] = as.numeric(benchmark[, i])
+}
+benchmark = benchmark[str_extract(benchmark$SampleId,"TCGA.{11}") %in% ovc_236,]   # 233 obs.
+```
+
+## Build a summary table
+##### Purity ranges
+```{r}
+# div_point = c(0.35, 0.45, 0.55, 0.65, 0.75, 0.85)
+div_point = c(0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9)
+```
+
+##### Summary
+```{r}
+# lowest boundary
+summary = data.frame(
+    Purity = div_point[1],
+    mean.posterior = mean(unlist(benchmark[benchmark$Purity >= div_point[1],]$AUC.POSTERIOR.SOMATIC)),
+    mean.AR = mean(unlist(benchmark[benchmark$Purity >= div_point[1],]$AUC.AR)),
+    # mean.AUC.diff = mean(abs(benchmark[benchmark$Purity >= div_point[1],]$AUC.POSTERIOR.SOMATIC - benchmark[benchmark$Purity >= div_point[1],]$AUC.AR))
+    mean.AUC.diff = mean(benchmark[benchmark$Purity >= div_point[1],]$AUC.POSTERIOR.SOMATIC - benchmark[benchmark$Purity >= div_point[1],]$AUC.AR)
+)
+
+# middle parts
+for (i in 2:length(div_point)-1) {
+    subset = benchmark[benchmark$Purity >= div_point[i] & benchmark$Purity < div_point[i+1],]
+    Purity = paste(div_point[i], "~", div_point[i+1])
+    mean.posterior = mean(unlist(subset$AUC.POSTERIOR.SOMATIC))
+    mean.AR = mean(unlist(subset$AUC.AR))
+    # mean.AUC.diff = mean(abs(subset$AUC.POSTERIOR.SOMATIC - subset$AUC.AR))
+    mean.AUC.diff = mean(subset$AUC.POSTERIOR.SOMATIC - subset$AUC.AR)
+    
+    summary = rbind(summary, c(Purity, mean.posterior, mean.AR, mean.AUC.diff))
+}
+
+# highest boundary
+x = length(div_point)
+Purity = div_point[x]
+mean.posterior = mean(unlist(benchmark[benchmark$Purity >= div_point[x],]$AUC.POSTERIOR.SOMATIC))
+mean.AR = mean(unlist(benchmark[benchmark$Purity >= div_point[x],]$AUC.AR))
+# mean.AUC.diff = mean(abs(benchmark[benchmark$Purity >= div_point[x],]$AUC.POSTERIOR.SOMATIC - benchmark[benchmark$Purity >= div_point[x],]$AUC.AR))
+mean.AUC.diff = mean(benchmark[benchmark$Purity >= div_point[x],]$AUC.POSTERIOR.SOMATIC - benchmark[benchmark$Purity >= div_point[x],]$AUC.AR)
+
+# summary of all
+summary = rbind(summary, c(Purity, mean.posterior, mean.AR, mean.AUC.diff))
+summary[,c(2:4)] <- sapply(summary[,c(2:4)], as.numeric)
+summary[,c(2:4)] <- round(summary[,c(2:4)], 3)
+```
+
+```{r}
+summary
+```
+
+```{r}
+names(summary) = c("Purity", "Mean.AUC.POSTERIOR.SOMATIC", "Mean.AUC.AR", "Mean.Difference")
+write.csv(summary, file = "~/Documents/github/PureCN_manuscript/Figures/Final_Tables/Table3.1_OV_AUC.csv")
+```

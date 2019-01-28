@@ -1,0 +1,159 @@
+---
+title: "EDA: LUAD_LOH"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+})
+```
+
+```{r}
+library(dplyr)
+```
+
+```{r}
+source("~/Documents/github/PureCN_manuscript/Figures/final/non_dup.R")
+```
+
+## LOH Granges from PureCN output
+```{r}
+loh_dir = "~/Documents/github/PureCN_manuscript/luad/Results/LOH"
+luad_LOH_t = readRDS(file.path(loh_dir, "data/luad_LOH_tumor.rds")) 
+
+LOH = GRanges(seqnames(luad_LOH_t[[1]]), 
+              ranges(luad_LOH_t[[1]]), 
+              strand(luad_LOH_t[[1]]), 
+              gene.symbol = luad_LOH_t[[1]]$gene.symbol)
+
+LOH
+```
+
+hg38ToHg19 liftOver (https://genome.ucsc.edu/cgi-bin/hgLiftOver)
+```{r}
+liftOver_BED = file.path(loh_dir, "extdata/hglft_genome_139_145390.bed")
+bed = as.data.frame(read.table(liftOver_BED,header = FALSE, sep="\t",stringsAsFactors=FALSE, quote=""))
+bed
+```
+
+```{r}
+df = data.frame(seqnames = c("chr6", "chr6", "chr6", "chr17"),
+                start = c(29910328, 31236943, 31322257, 7572924), 
+                stop = c(29913234, 31239850, 31324937, 7579914))
+LOH_hg19 = makeGRangesFromDataFrame(df)
+LOH_hg19$gene.symbol = c("HLA-A", "HLA-C", "HLA-B", "TP53")
+
+LOH_hg19
+```
+
+```{r echo=FALSE, eval=FALSE}
+# couldn't install 'liftOver' package
+library(rtracklayer)
+path = system.file(package = "liftOver", "extdata", "hg38ToHg19.over.chain")
+ch = import.chain(path)
+LOH_hg19 = liftOver(LOH, ch)
+```
+
+## Load ABSOLUTE GrangesList_Hg38
+```{r}
+abs_gl = readRDS("~/Documents/github/subtypeHeterogeneity-master/inst/extdata/ABSOLUTE_grangeslist.rds")
+luad_abs_gl = abs_gl[luad_442]   # 442 elements
+```
+
+## Extract HLA-A/B/C and TP53 LOH results from ABSOLUTE GrangesList
+```{r}
+ABS_LOH_all = data.frame(SampleId = NA, HLAA_LOH = NA, HLAB_LOH = NA, HLAC_LOH = NA, TP53_LOH = NA)
+
+for (i in seq_along(luad_abs_gl)) {
+  SampleId = names(luad_abs_gl[i])
+  x = findOverlaps(LOH, luad_abs_gl[[i]]) %>% as.matrix()
+
+  if (1 %in% x[,"queryHits"]) {
+    ind = x[which(x[,"queryHits"] == 1), "subjectHits"]
+    abs_loh = luad_abs_gl[[i]][ind]
+    if (abs_loh$Modal_HSCN_1 == 0 | abs_loh$Modal_HSCN_2 == 0) HLAA_LOH = TRUE else HLAA_LOH = FALSE
+  } else {HLAA_LOH = NA}
+  
+  if (2 %in% x[,"queryHits"]) {
+    ind = x[which(x[,"queryHits"] == 2), "subjectHits"]
+    abs_loh = luad_abs_gl[[i]][ind]
+    if (abs_loh$Modal_HSCN_1 == 0 | abs_loh$Modal_HSCN_2 == 0) HLAC_LOH = TRUE else HLAC_LOH = FALSE
+  } else {HLAC_LOH = NA}
+  
+  if (3 %in% x[,"queryHits"]) {
+    ind = x[which(x[,"queryHits"] == 3), "subjectHits"]
+    abs_loh = luad_abs_gl[[i]][ind]
+    if (abs_loh$Modal_HSCN_1 == 0 | abs_loh$Modal_HSCN_2 == 0) HLAB_LOH = TRUE else HLAB_LOH = FALSE
+  } else {HLAB_LOH = NA}
+  
+  if (4 %in% x[,"queryHits"]) {
+    ind = x[which(x[,"queryHits"] == 4), "subjectHits"]
+    abs_loh = luad_abs_gl[[i]][ind]
+    if (abs_loh$Modal_HSCN_1 == 0 | abs_loh$Modal_HSCN_2 == 0) TP53_LOH = TRUE else TP53_LOH = FALSE
+  } else {TP53_LOH = NA}
+
+  new_entry = data.frame(SampleId = SampleId,
+                         HLAA_LOH = HLAA_LOH, 
+                         HLAB_LOH = HLAB_LOH,
+                         HLAC_LOH = HLAC_LOH, 
+                         TP53_LOH = TP53_LOH)
+  ABS_LOH_all = rbind(ABS_LOH_all, new_entry)
+}
+
+ABS_LOH_all = ABS_LOH_all[-1,]
+head(ABS_LOH_all)
+```
+
+##### Save the LOH summary of ABSOLUTE
+```{r eval=FALSE}
+write.csv(ABS_LOH_all, file = "~/Documents/github/PureCN_manuscript/luad/Results/LOH/extdata/luad_ABS_LOH_all.tsv")
+```
+
+## Combine LOH results
+```{r echo=FALSE}
+ABS_LOH_all = read.csv("~/Documents/github/PureCN_manuscript/luad/Results/LOH/extdata/luad_ABS_LOH_all.tsv")[,-1]
+```
+
+##### Load all PureCN outputs
+```{r}
+data_dir = "~/Documents/github/PureCN_manuscript/luad/Results/LOH/extdata"
+LUAD_LOH = read.table(file.path(data_dir, "luad_LOH.tsv"), stringsAsFactors = FALSE)
+
+# change S0293689 filename to barcode
+LUAD_LOH$sampleID = stringr::str_extract(LUAD_LOH$sampleID, "TCGA.{11}")
+```
+
+##### Combine outputs from PureCN and ABSOLUTE
+```{r}
+names(LUAD_LOH)[1] = "SampleId"
+LUAD_LOH_all = left_join(ABS_LOH_all, LUAD_LOH, by = "SampleId")   # 442 obs.
+```
+
+keep only the complete cases (remove any row with NA value)
+```{r}
+LUAD_LOH_TP53 = LUAD_LOH_all[,c(1,5,12,13)]
+LUAD_LOH_HLA = LUAD_LOH_all[,-c(5,12,13)]
+
+LUAD_LOH_TP53 = LUAD_LOH_TP53[complete.cases(LUAD_LOH_TP53),]   # 332 obs.
+LUAD_LOH_HLA = LUAD_LOH_HLA[complete.cases(LUAD_LOH_HLA),]   # 297 obs.
+```
+
+##### Save
+```{r eval=FALSE}
+write.csv(LUAD_LOH_TP53, file = "~/Documents/github/PureCN_manuscript/luad/Results/LOH/extdata/luad_TP53_all.tsv")
+write.csv(LUAD_LOH_HLA, file = "~/Documents/github/PureCN_manuscript/luad/Results/LOH/extdata/luad_HLA_all.tsv")
+```

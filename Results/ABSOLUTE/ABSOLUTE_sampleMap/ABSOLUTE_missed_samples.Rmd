@@ -1,0 +1,85 @@
+---
+title: "Build a sampleMap for ABSOLUTE"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+ovc_236 : non-dupilcated samples list, collected by 931070 or S0293689
+```{r}
+source("~/Documents/github/PureCN_manuscript/Figures/final/non_dup.R")
+```
+
+ABSOLUTE_OV_grangeslist.rds from Ludwig seems to miss some samples.
+```{r}
+ABSOLUTE_grangeslist <- readRDS("~/Documents/github/subtypeHeterogeneity-master/inst/extdata/ABSOLUTE_grangeslist.rds") # 10803 elements
+ABSOLUTE_OV_grangeslist <- readRDS("~/Documents/github/subtypeHeterogeneity-master/inst/extdata/ABSOLUTE_OV_grangeslist.rds") # 516 elements
+```
+
+All 236 ovc samples are in ABSOLUTE_grangeslist, but only 225 exists in ABSOLUTE_OV_grangeslist
+```{r}
+x_ind = which(names(ABSOLUTE_grangeslist) %in% ovc_236)   # 236
+y_ind = which(names(ABSOLUTE_OV_grangeslist) %in% ovc_236)   # 225
+
+x = names(ABSOLUTE_grangeslist)[x_ind]
+y = names(ABSOLUTE_OV_grangeslist)[y_ind]
+
+missing = x[which(!x %in% y)]
+```
+
+hg19toHg38 liftOver of the remaining 11 samples
+```{r}
+ABSOLUTE_OV_grangeslist_2 = ABSOLUTE_grangeslist[missing]
+```
+
+"~/Documents/github/PureCN_manuscript/Results/ABSOLUTE/hg19ToHg38_ABSOLUTE.R"   
+```{r eval=FALSE}
+library(rtracklayer)
+library(IRanges)
+library(GenomicRanges)
+
+# abs = readRDS("/home/sehyun/Documents/github/subtypeHeterogeneity/inst/extdata/ABSOLUTE_OV_grangeslist.rds")
+abs = ABSOLUTE_OV_grangeslist_2
+ch = import.chain("~/reference/bedfiles/hg19ToHg38.over.chain")
+
+abs_hg38 = abs
+
+for (i in seq_along(abs)) {
+  for (j in seq_along(abs[[i]])) {
+    abs_ij_hg38 = liftOver(abs[[i]][j], ch)
+    abs_ij_hg38 = reduce(abs_ij_hg38)
+    
+    gr = abs_ij_hg38
+    gr = gr[seqnames(gr) == as.character(seqnames(abs[[i]][j]))]
+    
+    start_hg38 = min(start(ranges(gr)))
+    end_hg38 = max(end(ranges(gr)))
+    
+    ranges(abs_hg38[[i]][j]) = IRanges(start_hg38, end_hg38)
+  }
+}
+
+# saveRDS(abs_hg38, file = "/home/sehyun/Documents/github/PureCN_manuscript/Results/ABSOLUTE/ABSOLUTE_OV_grangeslist_hg38.rds")
+saveRDS(abs_hg38, file = "/home/sehyun/Documents/github/PureCN_manuscript/Results/ABSOLUTE/ABSOLUTE_OV_grangeslist_2_hg38.rds")
+```
+
+```{r eval=FALSE}
+ABSOLUTE_OV_grangeslist_hg38 = readRDS("~/Documents/github/PureCN_manuscript/Results/ABSOLUTE/ABSOLUTE_OV_grangeslist_hg38.rds")
+ABSOLUTE_OV_grangeslist_2_hg38 = readRDS("~/Documents/github/PureCN_manuscript/Results/ABSOLUTE/ABSOLUTE_OV_grangeslist_2_hg38.rds")
+
+ABSOLUTE_OV_grangeslist_all_hg38 = c(ABSOLUTE_OV_grangeslist_hg38, ABSOLUTE_OV_grangeslist_2_hg38)
+saveRDS(ABSOLUTE_OV_grangeslist_all_hg38, 
+        file = "/home/sehyun/Documents/github/PureCN_manuscript/Results/ABSOLUTE/ABSOLUTE_OV_grangeslist_all_hg38.rds")
+```
+

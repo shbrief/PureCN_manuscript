@@ -1,0 +1,88 @@
+---
+title: "OVC_duplication"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Load OVC dulpications
+```{r}
+dup_dir = "~/Documents/github/PureCN_manuscript/Results/duplication"
+
+t_dup = read.csv(file.path(dup_dir, "ovc_t_dup.csv"))[,-1]
+paired_dup = read.csv(file.path(dup_dir, "ovc_paired_dup.csv"))[,-1]
+```
+
+Clean tumor-only data
+```{r}
+col_names = c("Sampleid", "Purity", "Ploidy","submitter_id", "capture_kit")
+t_dup = t_dup[,col_names]
+t_dup = t_dup[order(t_dup$submitter_id),]
+names(t_dup) = paste0(names(t_dup), "_t")
+t_dup[c(1,4,5)] <- lapply(t_dup[c(1,4,5)], as.character)
+```
+
+Fill the missing data in paired mode data
+```{r}
+t_only = setdiff(t_dup$submitter_id_t, paired_dup$submitter_id)
+paired_dup[c(61:62),]$submitter_id = t_only[1]
+paired_dup[c(63:64),]$submitter_id = t_only[2]
+```
+
+Clean paired data
+```{r}
+paired_dup = paired_dup[,col_names]
+paired_dup = paired_dup[order(paired_dup$submitter_id),]
+names(paired_dup) = paste0(names(paired_dup), "_paired")
+paired_dup[c(1,4,5)] <- lapply(paired_dup[c(1,4,5)], as.character)
+
+dup_all = cbind(t_dup, paired_dup)
+```
+
+##### Check the merged result
+```{r}
+sum(dup_all$submitter_id_t != dup_all$submitter_id_paired)
+```
+
+## Combine with ABSOLUTE data
+##### Load ABSOLUTE output
+```{r}
+script_dir = "/home/sehyun/Documents/github/PureCN_manuscript"
+methods_dir = file.path(script_dir, "Methods")
+results_dir = file.path(script_dir, "Results/purity_ploidy")
+
+source(file.path(methods_dir, "sample_sorting.R"))
+source(file.path(results_dir, "R/puri_ploi_function.R"))
+source(file.path(results_dir, "R/purity_ploidy_ABS.R"))
+```
+
+##### Combine
+```{r}
+names(abs_puri_ploi)[1] = "submitter_id_t"
+dup_all = left_join(dup_all, abs_puri_ploi, by = "submitter_id_t")
+```
+
+##### Select the sample with the PureCN ploidy estimates closer to ABSOLUTE
+```{r}
+dup_all$diff = abs(dup_all$Ploidy_ABS - dup_all$Ploidy_t)
+dup_all = dup_all %>% group_by(submitter_id_t) %>% mutate(., rank = min_rank(diff)) %>% as.data.frame(.)
+
+dup_select = dup_all[which(dup_all$rank == 1),]
+dim(dup_select)   # 30 obs. (1 sample don't have ABS result + 1 sample don't have paired results)
+```
+
+## Save
+```{r eval=FALSE}
+write.csv(dup_select, file = file.path(dup_dir, "extdata/ovc_dup_select.csv"))
+```

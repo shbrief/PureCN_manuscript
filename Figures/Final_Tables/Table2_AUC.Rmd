@@ -1,0 +1,40 @@
+---
+title: "Supplmentary Table 2. AUC"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Import AUC data
+```{r}
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Tables"
+OV_AUC = read.csv(file.path(data_dir, "Table2.1_OV_AUC.csv"))[,-1]
+LUAD_AUC = read.csv(file.path(data_dir, "Table2.2_LUAD_AUC.csv"))[,-1]
+```
+
+**Label sample types**
+```{r}
+OV_AUC$Sample = "OV"
+LUAD_AUC$Sample = "LUAD"
+```
+
+```{r}
+AUC_both = rbind(OV_AUC, LUAD_AUC)
+AUC_both
+```
+
+## Save the final AUC table
+```{r}
+write.csv(AUC_both, file = file.path(data_dir, "Table2_AUC.csv"))
+```

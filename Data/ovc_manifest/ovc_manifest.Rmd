@@ -1,0 +1,176 @@
+---
+title: "Annotate manifest file created by GenomicDataCommons"
+author: "Sehyun Oh"
+date: "3/16/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Build an annotated manifest file using GenomicDataCommons and TCGAutils packages
+### Download manifest file using GenomicDataCommons
+```{r eval=FALSE}
+library(TCGAutils)
+library(jsonlite)
+library(curl)
+library(downloader)
+
+# using GenomicDataCommons package to generate manifest file
+library(GenomicDataCommons)
+library(magrittr)
+
+# available_values('files','cases.project.project_id')
+# available_values('files','experimental_strategy')
+# available_values('files','data_format')
+
+manifest <- GenomicDataCommons::files() %>%
+  GenomicDataCommons::filter(~ cases.project.project_id == "TCGA-OV" &
+           experimental_strategy == "WXS" &
+           data_format == "BAM") %>%
+  GenomicDataCommons::manifest()
+
+manifest = cbind(manifest, 
+                 UUIDtoBarcode(manifest$id, id_type = "file_id", 
+                               end_point = "center"))
+
+names(manifest)[7] = "barcode"
+manifest = cbind(manifest, TCGAutils::TCGAbiospec(manifest$barcode))
+
+manifest_dir = "~/Documents/github/PureCN_manuscript/Data/ovc_manifest"
+write.table(manifest, file = file.path(manifest_dir, "ovc_manifest.tsv"), sep="\t")
+```
+
+### Load the saved manifest file
+```{r eval=FALSE}
+manifest = read.delim(file.path(manifest_dir, "ovc_manifest.tsv"), as.is = TRUE)
+```
+
+### curl information about target_capture_kit 
+1) target_region, 2) name, 3) vender, 4) catalog_number
+```{r eval=FALSE}
+base.dir = "/home/sehyun/reference/ovc_manifest"
+bed.dir = "/shared/ovc_purecn/data"
+
+res = lapply(manifest$id, function(uuid) {
+  # con = curl::curl(paste0("https://gdc-api.nci.nih.gov/files/", uuid,
+  con = curl::curl(paste0("https://api.gdc.cancer.gov/files/", uuid, "?pretty=true&fields=analysis.metadata.read_groups.target_capture_kit_target_region,analysis.metadata.read_groups.target_capture_kit_name,analysis.metadata.read_groups.target_capture_kit_vendor,analysis.metadata.read_groups.target_capture_kit_catalog_number"))
+  x = jsonlite::fromJSON(con)
+  return(x)
+})
+
+y = lapply(res, function(x) unique(x$data$analysis$metadata$read_groups))
+y = do.call(rbind, y)
+manifest = cbind(manifest, y)
+manifest$target_capture_kit_catalog_number = sub("S02972011", "S07604514", manifest$target_capture_kit_catalog_number)
+```
+
+### Cleaning target_region (BED files) information
+Seperate the name of bedfiles from 'target_capture_kit_target_region'
+```{r eval=FALSE}
+bedfiles = strsplit(as.character(manifest$target_capture_kit_target_region), split="|", fixed=TRUE)
+
+for (i in 1:length(bedfiles)){
+  for (j in 1:length(bedfiles[[i]])){
+    if(identical(bedfiles[[i]][[j]], "https://earray.chem.agilent.com/earray/")){
+      bedfiles[[i]][[j]] <- "SeqCap_EZ_Exome_v3_capture.bed"
+    }else{
+      bedfiles[[i]][[j]] <- sub(".+/", "", bedfiles[[i]][[j]])
+    }
+    if(!file.exists(file.path(bed.dir, bedfiles[[i]][[j]])))
+      bedfiles[[i]][[j]] <- NA
+  }
+  bedfiles[[i]] = sort(bedfiles[[i]])
+}
+```
+
+```{r eval=FALSE}
+for (i in 1:length(bedfiles)) {
+  bedfiles[i][bedfiles[[i]] == "SeqCapEZ_Exome_v3.0_Design_Annotation_files.zip#SeqCap_EZ_Exome_v3_capture.bed"] = "SeqCap_EZ_Exome_v3_capture.bed"
+}
+
+manifest$bedfiles = bedfiles
+```
+
+### Add the location of raw data (BAM files)
+```{r eval=FALSE}
+saved_ovarian = list.files("/data/ovarian/ovc")
+saved_16tb = list.files("/data/16tb/ovc")
+
+manifest$file_dir = NA
+manifest$file_dir[which(manifest$file_id %in% saved_ovarian)] = "/data/ovarian/ovc"
+manifest$file_dir[which(manifest$file_id %in% saved_16tb)] = "/data/16tb/ovc"
+```
+
+### Add fname and SampleID
+```{r eval=FALSE}
+manifest$fname = gsub(".bam", "", manifest$filename)
+manifest$SampleID = stringr::str_extract(manifest$barcode, "TCGA.\\d+.\\d+.\\d+..\\d+.")
+saveRDS(manifest, file = file.path(data_dir, "ovc_manifest_112618.rds"))
+```
+
+
+## Downloading bam files
+```{r sample_sorting.R, eval=FALSE}
+# Subset manifest with only one bedfile
+bedfiles = manifest$bedfiles
+summary = data.frame()
+
+for (i in 1:length(bedfiles)){
+  summary = rbind(summary, c(i, length(bedfiles[[i]])))
+  colnames(summary) = c("i", "num_bedfiles")
+}
+
+manifest = manifest[-which(summary$num_bedfiles != 1),]
+```
+
+```{r download, eval=FALSE}
+manifest = manifest[manifest$target_capture_kit_catalog_number %in% c("931070", "S0293689"),]
+
+manifest_raw = GenomicDataCommons::files() %>%
+  GenomicDataCommons::filter(~ cases.project.project_id == "TCGA-OV" &
+           experimental_strategy == "WXS" &
+           data_format == "BAM") %>%
+  GenomicDataCommons::manifest()
+
+manifest_raw = manifest_raw[manifest_raw$id %in% manifest$id,]
+
+write.table(manifest_raw, 
+            file = file.path(manifest_dir, "ovc_manifest_download.tsv"), 
+            quote=FALSE, sep="\t", row.names=FALSE)
+```
+
+```{bash eval=FALSE}
+/home/sehyun/gdc-client download -m /home/sehyun/Documents/github/PureCN_manuscript/Data/ovc_manifest/ovc_manifest_download.tsv \
+-t /data/ovarian/gdc-user-token.2018-10-15T20_38_37.020Z.txt
+```
+
+##### Restart downloading
+```{r eval=FALSE}
+# restart the paused download
+x = list.files("/data/16tb/ovc")
+
+data_dir = "/home/sehyun/Documents/github/PureCN_manuscript/Data/ovc_manifest/"
+manifest_raw = read.table(file.path(data_dir, "ovc_manifest_download.tsv"), header = TRUE)
+manifest_sub = manifest_raw[!manifest_raw$id %in% x,]
+
+write.table(manifest_sub, 
+            file = file.path(data_dir, "ovc_manifest_download_2.tsv"), 
+            quote=FALSE, sep="\t", row.names=FALSE)
+```
+
+need to use the most up-to-date version of GenomicDataCommons to generate working manifest files
+```{bash eval=FALSE}
+/home/sehyun/gdc-client download -m /home/sehyun/Documents/github/PureCN_manuscript/Data/ovc_manifest/ovc_manifest_download_2.tsv \
+-t /data/ovarian/gdc-user-token.2018-10-15T20_38_37.020Z.txt
+```
+
+### Notes
+* Levi's script is '/shared/ovc_purecn/src/annotate_manifest.Rmd'   
+* '2.1M_Human_Exome_Annotation.zip#2.1M_Human_Exome.bed' is not available.   
+    + http://www.biorigami.com/wp-content/uploads/2011/11/SeqCap_HumanExome_05964903001_2009_06.pdf   
+      ('NimbleGen Sequence Capture 2.1M Human Exome Array' kit with 34Mb of target coverage)
+    + http://sequencing.roche.com/en/products-solutions/by-category/target-enrichment/hybridization.html   
+      (currently avialable information)   
+

@@ -1,0 +1,201 @@
+---
+title: "Sup. Table2. Concordance between ABSOLUTE, PureCN, and FACETS "
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(patchwork)
+  library(dplyr)
+  library(ggplot2)
+})
+```
+
+```{r}
+library(patchwork)
+library(dplyr)
+library(ggplot2)
+```
+
+```{r}
+dat = read.csv("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Tables/Table1_puri_ploi.csv")[,-1]
+```
+
+```{r}
+dat$Purity_diff_PCN_t = abs(dat$Purity_ABS - dat$Purity_PCN_t)
+dat$Purity_diff_PCN_p = abs(dat$Purity_ABS - dat$Purity_PCN_p)
+dat$Purity_diff_FACETS = abs(dat$Purity_ABS - dat$Purity_FACETS)
+```
+
+```{r}
+dat$Ploidy_diff_PCN_t = abs(dat$Ploidy_ABS - dat$Ploidy_PCN_t)
+dat$Ploidy_diff_PCN_p = abs(dat$Ploidy_ABS - dat$Ploidy_PCN_p)
+dat$Ploidy_diff_FACETS = abs(dat$Ploidy_ABS - dat$Ploidy_FACETS)
+```
+
+```{r}
+diff = dat[,c(1, 10:16)]
+diff = diff[complete.cases(diff),]
+diff_ov = diff[which(diff$Sample == "OV"),]
+diff_luad = diff[which(diff$Sample == "LUAD"),]
+```
+
+##### OV Purity Concordance
+```{r}
+both = which(diff_ov$Purity_diff_PCN_t < 0.1 & diff_ov$Purity_diff_FACETS < 0.1)  
+neither = which(diff_ov$Purity_diff_PCN_t >= 0.1 & diff_ov$Purity_diff_FACETS >= 0.1)  
+FACETS = which(diff_ov$Purity_diff_PCN_t >= 0.1 & diff_ov$Purity_diff_FACETS < 0.1)   
+PCN = which(diff_ov$Purity_diff_PCN_t < 0.1 & diff_ov$Purity_diff_FACETS >= 0.1)  
+
+diff_ov$ov_puri = NA
+diff_ov$ov_puri[both] = "1"
+diff_ov$ov_puri[PCN] = "2"
+diff_ov$ov_puri[FACETS] = "3"
+diff_ov$ov_puri[neither] = "4"
+
+
+diff_ov$ov_puri = factor(diff_ov$ov_puri, 
+                  labels = c("Both", "PureCN", "FACETS", "Neither"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+
+OV_Purity = table(diff_ov$ov_puri)
+```
+
+##### OV Ploidy Concordance
+```{r}
+both = which(diff_ov$Ploidy_diff_PCN_t < 0.5 & diff_ov$Ploidy_diff_FACETS < 0.5)   
+neither = which(diff_ov$Ploidy_diff_PCN_t >= 0.5 & diff_ov$Ploidy_diff_FACETS >= 0.5)   
+FACETS = which(diff_ov$Ploidy_diff_PCN_t >= 0.5 & diff_ov$Ploidy_diff_FACETS < 0.5)  
+PCN = which(diff_ov$Ploidy_diff_PCN_t < 0.5 & diff_ov$Ploidy_diff_FACETS >= 0.5)  
+
+diff_ov$ov_ploi = NA
+diff_ov$ov_ploi[both] = "1"
+diff_ov$ov_ploi[PCN] = "2"
+diff_ov$ov_ploi[FACETS] = "3"
+diff_ov$ov_ploi[neither] = "4"
+
+
+diff_ov$ov_ploi = factor(diff_ov$ov_ploi, 
+                  labels = c("Both", "PureCN", "FACETS", "Neither"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+
+OV_Ploidy = table(diff_ov$ov_ploi)
+```
+
+##### LUAD Purity Concordance
+```{r}
+both = which(diff_luad$Purity_diff_PCN_t < 0.1 & diff_luad$Purity_diff_FACETS < 0.1)  
+neither = which(diff_luad$Purity_diff_PCN_t >= 0.1 & diff_luad$Purity_diff_FACETS >= 0.1)  
+FACETS = which(diff_luad$Purity_diff_PCN_t >= 0.1 & diff_luad$Purity_diff_FACETS < 0.1)   
+PCN = which(diff_luad$Purity_diff_PCN_t < 0.1 & diff_luad$Purity_diff_FACETS >= 0.1)  
+
+diff_luad$luad_puri = NA
+diff_luad$luad_puri[both] = "1"
+diff_luad$luad_puri[PCN] = "2"
+diff_luad$luad_puri[FACETS] = "3"
+diff_luad$luad_puri[neither] = "4"
+
+
+diff_luad$luad_puri = factor(diff_luad$luad_puri, 
+                  labels = c("Both", "PureCN", "FACETS", "Neither"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+
+LUAD_Purity = table(diff_luad$luad_puri)
+```
+
+#### LUAD Ploidy Concordance
+```{r}
+both = which(diff_luad$Ploidy_diff_PCN_t < 0.5 & diff_luad$Ploidy_diff_FACETS < 0.5)   
+neither = which(diff_luad$Ploidy_diff_PCN_t >= 0.5 & diff_luad$Ploidy_diff_FACETS >= 0.5)   
+FACETS = which(diff_luad$Ploidy_diff_PCN_t >= 0.5 & diff_luad$Ploidy_diff_FACETS < 0.5)  
+PCN = which(diff_luad$Ploidy_diff_PCN_t < 0.5 & diff_luad$Ploidy_diff_FACETS >= 0.5)  
+
+diff_luad$luad_ploi = NA
+diff_luad$luad_ploi[both] = "1"
+diff_luad$luad_ploi[PCN] = "2"
+diff_luad$luad_ploi[FACETS] = "3"
+diff_luad$luad_ploi[neither] = "4"
+
+
+diff_luad$luad_ploi = factor(diff_luad$luad_ploi, 
+                  labels = c("Both", "PureCN", "FACETS", "Neither"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+
+LUAD_Ploidy = table(diff_luad$luad_ploi)
+```
+
+##### Summary table
+```{r}
+summary = rbind(OV_Purity = OV_Purity, OV_Ploidy = OV_Ploidy, LUAD_Purity = LUAD_Purity, LUAD_Ploidy = LUAD_Ploidy)
+summary
+```
+
+## Summary for stacked bar chart
+```{r}
+OV_Purity_value = round(OV_Purity/sum(OV_Purity)*100, digits = 1)
+OV_Ploidy_value = round(OV_Ploidy/sum(OV_Ploidy)*100, digits = 1)
+LUAD_Purity_value = round(LUAD_Purity/sum(LUAD_Purity)*100, digits = 1)
+LUAD_Ploidy_value = round(LUAD_Ploidy/sum(LUAD_Ploidy)*100, digits = 1)
+
+condition = rep(factor(c("Both", "PureCN", "FACETS", "Neither"), 
+                       levels = c("Neither", "FACETS", "PureCN", "Both")), 4)
+
+value = c(OV_Purity_value, OV_Ploidy_value, LUAD_Purity_value, LUAD_Ploidy_value)
+
+type = factor(c(rep("OV_Purity", 4), 
+                rep("OV_Ploidy", 4),
+                rep("LUAD_Purity", 4),
+                rep("LUAD_Ploidy", 4)),
+              levels = c("OV_Purity", "OV_Ploidy", "LUAD_Purity", "LUAD_Ploidy"))
+
+data = data.frame(condition, value, type)
+```
+
+```{r}
+concodance_plot = ggplot(data, aes(fill=condition, y=value, x = type, order = as.numeric(value))) + 
+  geom_bar(stat="identity", position="fill", width = 0.4) +
+  labs(title = "Concordance of WES PureCN and FACETS with SNP6 ABSOLUTE") + 
+  theme_light() +
+  theme(plot.title = element_text(size = 14, 
+                                  face = "bold", 
+                                  margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 10, face = "bold"), 
+        axis.text.y = element_text(size = 10, face = "bold"), 
+        axis.title.x = element_blank(),
+        # axis.title.y = element_text(size = 12, face = "bold"),
+        axis.title.y = element_blank(), 
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), 
+        panel.grid.minor = element_line(),
+        # legend.position = c(0.16, 0.13),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 10, face = "bold"),
+        legend.background = element_rect(fill = NA),
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")) +
+  scale_y_continuous(labels = scales::percent) + ylab("Concordance") + 
+  scale_fill_manual(values = c("grey", "navy", "red", "orange"))
+```
+
+```{r fig.width=7.5, fig.height= 5}
+concodance_plot
+ 
+out_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+saveRDS(concodance_plot, file = file.path(out_dir, "SFig2.concordance.rds"))
+```

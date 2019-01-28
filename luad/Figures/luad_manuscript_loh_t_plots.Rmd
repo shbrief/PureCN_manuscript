@@ -1,0 +1,299 @@
+---
+title: "LUAD LOH Plots (Tumor-only)"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+  library(cowplot)
+})
+```
+
+```{r}
+library(dplyr)
+library(cowplot)
+```
+
+## Load LOH output
+```{r}
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup"
+results_dir = file.path(data_dir, "luad/Results/LOH")
+TP53_all = read.csv(file.path(results_dir, "extdata/luad_TP53_all.tsv"))[,-1]   # 332 obs.
+HLA_all = read.csv(file.path(results_dir, "extdata/luad_HLA_all.tsv"))[,-1]   # 297 obs.
+```
+
+## TP53
+Total 332 obs.
+```{r}
+both = which(TP53_all$TP53_LOH == TRUE & TP53_all$TP53_LOH_t == TRUE)   # 263
+neither = which(TP53_all$TP53_LOH == FALSE & TP53_all$TP53_LOH_t == FALSE)   # 54
+ABSOLUTE = which(TP53_all$TP53_LOH == TRUE & TP53_all$TP53_LOH_t == FALSE)   # 3
+PCN = which(TP53_all$TP53_LOH == FALSE & TP53_all$TP53_LOH_t == TRUE)   # 12
+
+TP53_all$abs_t = NA
+TP53_all$abs_t[both] = "1"
+TP53_all$abs_t[neither] = "2"
+TP53_all$abs_t[ABSOLUTE] = "3"
+TP53_all$abs_t[PCN] = "4"
+
+
+TP53_all$abs_t = factor(TP53_all$abs_t, 
+                  labels = c("Both", "Neither", "SNP6 Array", "Tumor WES"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+
+TP53 = table(TP53_all$abs_t)
+```
+
+```{r echo=FALSE}
+# Purity and LOH
+puri_ploi = read.csv(file.path(data_dir, "Figures/Final_Tables/Table1_puri_ploi.csv"))[,-1]
+x = left_join(TP53_all, puri_ploi, by = "SampleId")
+
+TP53_Agree_purity = x$Purity_PCN_t[c(both, neither)]
+TP53_Disagree_purity = x$Purity_PCN_t[c(ABSOLUTE, PCN)]
+
+TP53_Agree = summary(TP53_Agree_purity) 
+TP53_Disagree = summary(TP53_Disagree_purity)
+
+<<<<<<< HEAD
+res = wilcox.test(TP53_Agree_purity, TP53_Disagree_purity, var.equal = TRUE)
+=======
+res = t.test(TP53_Agree_purity, TP53_Disagree_purity, var.equal = TRUE)
+>>>>>>> 96ebf69334c5473e276c5bbab9659e0d25fb340e
+TP53_pvalue = res$p.value
+
+rm(x)
+```
+
+## HLA
+Total 297 obs.
+
+##### HLA-A
+```{r}
+both = which(HLA_all$HLAA_LOH == TRUE & HLA_all$HLAA_LOH_t == TRUE)   # 87
+neither = which(HLA_all$HLAA_LOH == FALSE & HLA_all$HLAA_LOH_t == FALSE)   # 182
+ABSOLUTE = which(HLA_all$HLAA_LOH == TRUE & HLA_all$HLAA_LOH_t == FALSE)   # 13
+PCN = which(HLA_all$HLAA_LOH == FALSE & HLA_all$HLAA_LOH_t == TRUE)   # 15
+
+HLA_all$HLAA_abs_t = NA
+HLA_all$HLAA_abs_t[both] = "1"
+HLA_all$HLAA_abs_t[neither] = "2"
+HLA_all$HLAA_abs_t[ABSOLUTE] = "3"
+HLA_all$HLAA_abs_t[PCN] = "4"
+
+
+HLA_all$HLAA_abs_t = factor(HLA_all$HLAA_abs_t, 
+                  labels = c("Both", "Neither", "SNP6 Array", "Tumor WES"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+
+HLAA = table(HLA_all$HLAA_abs_t)
+```
+
+```{r echo=FALSE}
+# Purity and LOH
+x = left_join(HLA_all, puri_ploi, by = "SampleId")
+
+HLAA_Agree_purity = x$Purity_PCN_t[c(both, neither)]
+HLAA_Disagree_purity = x$Purity_PCN_t[c(ABSOLUTE, PCN)]
+
+HLAA_Agree = summary(HLAA_Agree_purity) 
+HLAA_Disagree = summary(HLAA_Disagree_purity)
+
+<<<<<<< HEAD
+res = wilcox.test(HLAA_Agree_purity, HLAA_Disagree_purity, var.equal = TRUE)
+=======
+res = t.test(HLAA_Agree_purity, HLAA_Disagree_purity, var.equal = TRUE)
+>>>>>>> 96ebf69334c5473e276c5bbab9659e0d25fb340e
+HLAA_pvalue = res$p.value
+
+rm(x)
+```
+
+##### HLA-B
+```{r}
+both = which(HLA_all$HLAB_LOH == TRUE & HLA_all$HLAB_LOH_t == TRUE)   # 88
+neither = which(HLA_all$HLAB_LOH == FALSE & HLA_all$HLAB_LOH_t == FALSE)   # 184
+ABSOLUTE = which(HLA_all$HLAB_LOH == TRUE & HLA_all$HLAB_LOH_t == FALSE)   # 11
+PCN = which(HLA_all$HLAB_LOH == FALSE & HLA_all$HLAB_LOH_t == TRUE)   # 14
+
+HLA_all$HLAB_abs_t = NA
+HLA_all$HLAB_abs_t[both] = "1"
+HLA_all$HLAB_abs_t[neither] = "2"
+HLA_all$HLAB_abs_t[ABSOLUTE] = "3"
+HLA_all$HLAB_abs_t[PCN] = "4"
+
+
+HLA_all$HLAB_abs_t = factor(HLA_all$HLAB_abs_t, 
+                  labels = c("Both", "Neither", "SNP6 Array", "Tumor WES"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+
+HLAB = table(HLA_all$HLAB_abs_t)
+```
+
+```{r echo=FALSE}
+# Purity and LOH
+x = left_join(HLA_all, puri_ploi, by = "SampleId")
+
+HLAB_Agree_purity = x$Purity_PCN_t[c(both, neither)]
+HLAB_Disagree_purity = x$Purity_PCN_t[c(ABSOLUTE, PCN)]
+
+HLAB_Agree = summary(HLAB_Agree_purity) 
+HLAB_Disagree = summary(HLAB_Disagree_purity)
+
+<<<<<<< HEAD
+res = wilcox.test(HLAB_Agree_purity, HLAB_Disagree_purity, var.equal = TRUE)
+=======
+res = t.test(HLAB_Agree_purity, HLAB_Disagree_purity, var.equal = TRUE)
+>>>>>>> 96ebf69334c5473e276c5bbab9659e0d25fb340e
+HLAB_pvalue = res$p.value
+
+rm(x)
+```
+
+##### HLA-C
+```{r}
+both = which(HLA_all$HLAC_LOH == TRUE & HLA_all$HLAC_LOH_t == TRUE)   # 88
+neither = which(HLA_all$HLAC_LOH == FALSE & HLA_all$HLAC_LOH_t == FALSE)   # 182
+ABSOLUTE = which(HLA_all$HLAC_LOH == TRUE & HLA_all$HLAC_LOH_t == FALSE)   # 12
+PCN = which(HLA_all$HLAC_LOH == FALSE & HLA_all$HLAC_LOH_t == TRUE)   # 15
+
+HLA_all$HLAC_abs_t = NA
+HLA_all$HLAC_abs_t[both] = "1"
+HLA_all$HLAC_abs_t[neither] = "2"
+HLA_all$HLAC_abs_t[ABSOLUTE] = "3"
+HLA_all$HLAC_abs_t[PCN] = "4"
+
+
+HLA_all$HLAC_abs_t = factor(HLA_all$HLAC_abs_t, 
+                  labels = c("Both", "Neither", "SNP6 Array", "Tumor WES"),
+                  levels = c("1", "2", "3", "4"), 
+                  ordered = TRUE)
+
+HLAC = table(HLA_all$HLAC_abs_t)
+```
+
+```{r echo=FALSE}
+# Purity and LOH
+x = left_join(HLA_all, puri_ploi, by = "SampleId")
+
+HLAC_Agree_purity = x$Purity_PCN_t[c(both, neither)]
+HLAC_Disagree_purity = x$Purity_PCN_t[c(ABSOLUTE, PCN)]
+
+HLAC_Agree = summary(HLAC_Agree_purity) 
+HLAC_Disagree = summary(HLAC_Disagree_purity)
+
+<<<<<<< HEAD
+res = wilcox.test(HLAC_Agree_purity, HLAC_Disagree_purity, var.equal = TRUE)
+=======
+res = t.test(HLAC_Agree_purity, HLAC_Disagree_purity, var.equal = TRUE)
+>>>>>>> 96ebf69334c5473e276c5bbab9659e0d25fb340e
+HLAC_pvalue = res$p.value
+
+rm(x)
+```
+
+##### Summary table
+```{r}
+summary = rbind(HLAA = HLAA, HLAB = HLAB, HLAC = HLAC, TP53 = TP53)
+summary
+```
+
+```{r}
+purity_summary = rbind(HLAA_Agree = HLAA_Agree,
+                       HLAA_Disagree = HLAA_Disagree,
+                       HLAB_Agree = HLAB_Agree,
+                       HLAB_Disagree = HLAB_Disagree,
+                       HLAC_Agree = HLAC_Agree,
+                       HLAC_Disagree = HLAC_Disagree,
+                       TP53_Agree = TP53_Agree,
+                       TP53_Disagree = TP53_Disagree
+                       )
+purity_summary
+
+mean(purity_summary[,"Mean"][c(1,3,5,7)])   # mean of 'Agree'
+mean(purity_summary[,"Mean"][c(2,4,6,8)])   # mean of 'Disagree'
+```
+
+```{r}
+pvalue_summary = cbind(HLAA_pvalue = HLAA_pvalue,
+                       HLAB_pvalue = HLAB_pvalue,
+                       HLAC_pvalue = HLAC_pvalue,
+                       TP53_pvalue = TP53_pvalue)
+pvalue_summary
+```
+
+## Summary for stacked bar chart
+```{r}
+TP53_abs_t_value = round(TP53/sum(TP53)*100, digits = 1)
+HLAA_abs_t_value = round(HLAA/sum(HLAA)*100, digits = 1)
+HLAB_abs_t_value = round(HLAB/sum(HLAB)*100, digits = 1)
+HLAC_abs_t_value = round(HLAC/sum(HLAC)*100, digits = 1)
+
+condition = rep(factor(c("Both", "Neither", "SNP6 Array", "Tumor WES"), 
+                       levels = c("Tumor WES", "SNP6 Array", "Neither", "Both")), 4)
+
+value = c(TP53_abs_t_value, HLAA_abs_t_value, HLAB_abs_t_value, HLAC_abs_t_value)
+
+type = c(rep("TP53", 4), 
+         rep("HLA-A", 4),
+         rep("HLA-B", 4),
+         rep("HLA-C", 4))
+
+data = data.frame(condition, value, type)
+```
+
+```{r figure.width=7, figure.height= 5}
+LOH_t_plot = ggplot(data, aes(fill=condition, y=value, x = type, order = as.numeric(value))) + 
+  geom_bar(stat="identity", position="fill", width = 0.4) +
+  labs(title = "F. TCGA-LUAD: LOH") + 
+  theme_light() +
+  theme(plot.title = element_text(size = 14, 
+                                  face = "bold", 
+                                  margin = margin(10, 0, 10, 0)),
+        axis.text.x = element_text(size = 10, face = "bold"), 
+        axis.text.y = element_text(size = 10, face = "bold"), 
+        # axis.title.x = element_text(size = 12, face = "bold"), 
+        axis.title.x = element_blank(),
+<<<<<<< HEAD
+        axis.title.y = element_text(size = 12, face = "bold"),
+        # axis.title.y = element_blank(),
+=======
+        # axis.title.y = element_text(size = 12, face = "bold"),
+        axis.title.y = element_blank(),
+>>>>>>> 96ebf69334c5473e276c5bbab9659e0d25fb340e
+        axis.line = element_line(colour = "black", size = 0.5),
+        panel.grid.major = element_line(), 
+        panel.grid.minor = element_line(),
+        # legend.position = c(0.16, 0.13),
+        legend.title = element_blank(),
+        legend.text = element_text(size = 10, face = "bold"),
+        legend.background = element_rect(fill = NA),
+        # legend.title = element_text(size = 12, face = "bold"),
+        # legend.text = element_text(size = 10, face = "bold"),
+        plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")) +
+  scale_y_continuous(labels = scales::percent) + ylab("Concordance") + 
+  scale_fill_manual(values = c("grey", "dark grey", "tomato", "red"))
+
+LOH_t_plot
+```
+
+```{r eval=FALSE}
+saveRDS(LOH_t_plot, file = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/Fig1F.luad_loh.rds")
+```

@@ -1,0 +1,65 @@
+---
+title: "Overview of BED files"
+author: "Sehyun Oh"
+date: "8/19/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load manfiest files
+```{r}
+data.dir = "/home/sehyun/Documents/github/PureCN_manuscript/Data/ovc_manifest/"
+manifest = readRDS(file.path(data.dir, "ge_manifest_061318.rds"))
+bedfiles = manifest$bedfiles
+```
+
+## Review bedfiles information
+List of unique combinations of bedfile(s)
+```{r}
+unique(bedfiles)
+```
+
+The total number of samples with more than one bedfiles
+```{r}
+num = list()
+summary = data.frame()
+
+for (i in 1:length(bedfiles)){
+  num[i] = length(bedfiles[[i]])!=1
+  summary = rbind(summary, c(i, length(bedfiles[[i]])))
+}
+
+sum(unlist(num))
+```
+
+The number of samples with the different number of bedfiles (=1,2,3,4,8)
+```{r}
+colnames(summary) = c("i", "num_bedfiles")
+table(summary$num_bedfiles)
+```
+
+```{r eval=FALSE, include=FALSE}
+bedfiles_2 = summary$i[which(summary$num_bedfiles == 2)]
+bedfiles_3 = summary$i[which(summary$num_bedfiles == 3)]
+bedfiles_4 = summary$i[which(summary$num_bedfiles == 4)]
+bedfiles_8 = summary$i[which(summary$num_bedfiles == 8)]
+```
+
+```{r eval=FALSE, include=FALSE}
+unique(bedfiles[bedfiles_8][])
+```
+
+```{r eval=FALSE, include=FALSE}
+# manifest with all the bedfiles is saved in '~/reference/ovc_manifest/ge_manfiest_061318.rds'
+# [temporaily] put NA for multiple bedfiles
+for (i in 1:length(bedfiles)) {
+  bedfiles[i][which(length(bedfiles[[i]]) != 1)] = NA
+  bedfiles[i][bedfiles[[i]] == "SeqCapEZ_Exome_v3.0_Design_Annotation_files.zip#SeqCap_EZ_Exome_v3_capture.bed"] = "SeqCap_EZ_Exome_v3_capture.bed"
+}
+
+sort(table(unlist(bedfiles)), decreasing = TRUE)
+manifest$bedfiles = unlist(bedfiles)
+```
