@@ -1,0 +1,92 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(stringr)
+```
+
+```{r}
+dat_dir = "~/wallabe4_backup/github/PureCN_manuscript/"
+dat = read.csv(file.path(dat_dir, "Figures/Final_Tables/Table1_puri_ploi.csv"))[,-1]
+luad_dat = dat[which(dat$Sample == "LUAD"),]
+ov_dat = dat[which(dat$Sample == "OV"),]
+```
+
+```{r}
+luad_mani = read.table(file.path(dat_dir, "luad/luad_manifest.tsv"))
+ov_mani = read.table(file.path(dat_dir, "Data/ovc_manifest/ovc_manifest.tsv"))
+```
+
+# LUAD
+```{r}
+info = str_sub(luad_mani$barcode, -15, -1) %>% str_split_fixed(., "-", 4)
+new_col = data.frame(SampleId = str_extract(luad_mani$barcode, "TCGA.{11}"),
+                     barcode = luad_mani$barcode,
+                     sample = str_sub(info[,1], 1, 2),
+                     vial = str_sub(info[,1], 3, 3),
+                     portion = str_sub(info[,2], 1, 2),
+                     analyte = str_sub(info[,2], 3, 3))
+names(new_col)[-1] = paste0(names(new_col)[-1], "_PCN")
+luad_dat = dplyr::left_join(luad_dat, new_col, by = "SampleId")
+```
+
+## Extract ABSOLUTE sample information from barcode
+```{r}
+abs = read.table("~/wallabe4_backup/github/subtypeHeterogeneity-master/inst/extdata/ABSOLUTE_Purity_Ploidy.txt", sep = "\t", header =TRUE)
+names(abs)[2] = "barcode"
+
+info = str_sub(abs$barcode, -15, -1) %>% str_split_fixed(., "-", 4)
+new_col = data.frame(barcode = abs$barcode,
+                     sample = str_sub(info[,1], 1, 2),
+                     vial = str_sub(info[,1], 3, 3),
+                     portion = str_sub(info[,2], 1, 2),
+                     analyte = str_sub(info[,2], 3, 3))
+
+abs = dplyr::left_join(abs, new_col, by = "barcode")
+```
+
+```{r}
+col_sub = c("array", "barcode", "sample", "vial", "portion", "analyte")
+abs = abs[,col_sub]
+
+names(abs)[1] = "SampleId"
+names(abs)[-1] = paste0(names(abs)[-1], "_ABS")
+```
+
+```{r}
+luad_all = dplyr::left_join(luad_dat, abs, by = "SampleId")
+luad_all[,c(10:20)] = sapply(luad_all[,c(10:20)], as.character)
+```
+
+```{r echo=FALSE}
+rm(info, new_col, col_sub)
+```
+
+# OV
+```{r}
+info = str_sub(ov_mani$barcode, -15, -1) %>% str_split_fixed(., "-", 4)
+new_col = data.frame(SampleId = str_extract(ov_mani$barcode, "TCGA.{11}"),
+                     barcode = ov_mani$barcode,
+                     sample = str_sub(info[,1], 1, 2),
+                     vial = str_sub(info[,1], 3, 3),
+                     portion = str_sub(info[,2], 1, 2),
+                     analyte = str_sub(info[,2], 3, 3))
+names(new_col)[-1] = paste0(names(new_col)[-1], "_PCN")
+ov_dat = dplyr::left_join(ov_dat, new_col, by = "SampleId")
+```
+
+```{r}
+ov_all = dplyr::left_join(ov_dat, abs, by = "SampleId")
+ov_all[,c(10:20)] = sapply(ov_all[,c(10:20)], as.character)
+```
+
+```{r}
+ov_sub = ov_all[which(ov_all$portion_ABS == ov_all$portion_PCN),]
+```
+

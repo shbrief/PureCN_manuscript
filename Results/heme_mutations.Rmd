@@ -1,0 +1,84 @@
+---
+title: "Mutation calls on heme-relaated genes"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Heme-related mutations 
+```{r}
+heme_gene = c("DNMT3A", "IDH1/2", "JAK2", "TET2")
+```
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(dplyr)
+})
+```
+
+```{r}
+library(dplyr)
+```
+
+## OV
+```{r}
+ov_dir = "~/wallabe4_backup/data/CNVworkflow"
+```
+
+## LUAD 
+```{r}
+luad_dir = "~/wallabe4_backup/data/CNVworkflow_LUAD/purecn_output/PureCN"
+luad_dir_t = file.path(luad_dir, "tumor_only")
+luad_dir_p = file.path(luad_dir, "matching_normal")
+```
+
+```{r}
+file_t = list.files(luad_dir_t)
+file_p = list.files(luad_dir_p)
+```
+
+```{r}
+source('~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R')
+```
+
+```{r}
+for (i in seq_along(file_t)) {
+    barcode = stringr::str_extract(file_t[i], "TCGA.{11}")
+    if (barcode %in% luad_442) {
+        file_path = file.path(luad_dir_t, file_t[i])
+        assign(barcode, read.csv(file_path)[,-1])
+    }
+}
+```
+
+```{r}
+data_p[which(data_p$gene.symbol == "DNMT3A"),]
+```
+
+```{r}
+for (i in 1) {
+    barcode = stringr::str_extract(file_t[i], "TCGA.{11}")
+    if (barcode %in% luad_442) {
+        file_path = file.path(luad_dir_t, file_t[i])
+        # assign(barcode, read.csv(file_path)[,-1])
+        print(barcode)
+        barcode = read.csv(file_path)[,c("chr", "start", "gene.symbol")]
+    }
+    barcode = barcode[which(barcode$gene.symbol %in% heme_gene),]
+    print(barcode)
+}
+```
+
+
+
