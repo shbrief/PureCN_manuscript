@@ -27,12 +27,12 @@ library(dplyr)
 ```
 
 ```{r}
-source("~/Documents/github/PureCN_manuscript/Figures/final/non_dup.R")
+source("~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
 ```
 
 ## LOH Granges from PureCN output
 ```{r}
-loh_dir = "~/Documents/github/PureCN_manuscript/Results/LOH"
+loh_dir = "~/wallabe4_backup/github/PureCN_manuscript/Results/LOH"
 LOH_t_931070 = readRDS(file.path(loh_dir, "data/931070_LOH_tumor.rds")) 
 
 LOH = GRanges(seqnames(LOH_t_931070[[1]]), 
@@ -43,7 +43,7 @@ LOH = GRanges(seqnames(LOH_t_931070[[1]]),
 
 ## Load ABSOLUTE GrangesList_Hg38
 ```{r}
-abs_gl_hg38 = readRDS("~/Documents/github/PureCN_manuscript/Results/ABSOLUTE/ABSOLUTE_OV_grangeslist_all_hg38.rds")
+abs_gl_hg38 = readRDS("~/wallabe4_backup/github/PureCN_manuscript/Results/ABSOLUTE/ABSOLUTE_OV_grangeslist_all_hg38.rds")
 abs_gl_hg38 = abs_gl_hg38[ovc_236]   # 236 elements
 ```
 
@@ -93,17 +93,17 @@ head(ABS_LOH_all)
 
 ##### Save the LOH summary of ABSOLUTE
 ```{r eval=FALSE}
-write.csv(ABS_LOH_all, file = "~/Documents/github/PureCN_manuscript/Results/LOH/extdata/ABS_LOH_all.tsv")
+write.csv(ABS_LOH_all, file = "~/wallabe4_backup/github/PureCN_manuscript/Results/LOH/extdata/ABS_LOH_all.tsv")
 ```
 
 ## Combine TP53 LOH results
 ```{r echo=FALSE}
-ABS_LOH_all = read.csv("~/Documents/github/PureCN_manuscript/Results/LOH/extdata/ABS_LOH_all.tsv")[,-1]
+ABS_LOH_all = read.csv("~/wallabe4_backup/github/PureCN_manuscript/Results/LOH/extdata/ABS_LOH_all.tsv")[,-1]
 ```
 
 ##### Load all PureCN outputs: both from 931070 and S0293689
 ```{r}
-data_dir = "~/Documents/github/PureCN_manuscript/Results/LOH/extdata"
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript/Results/LOH/extdata"
 TP53_931070 = read.table(file.path(data_dir, "931070_TP53_LOH_gene.tsv"), stringsAsFactors = FALSE)
 TP53_S0293689 = read.table(file.path(data_dir, "S0293689_TP53_LOH_gene.tsv"), stringsAsFactors = FALSE)
 
@@ -136,13 +136,13 @@ TP53_all = TP53_all[complete.cases(TP53_all),]   # 223 obs.
 
 ##### Save
 ```{r eval=FALSE}
-write.csv(TP53_all, file = "~/Documents/github/PureCN_manuscript/Results/LOH/extdata/TP53_all.tsv")
+write.csv(TP53_all, file = "~/wallabe4_backup/github/PureCN_manuscript/Results/LOH/extdata/TP53_all.tsv")
 ```
 
 ## Combine HLA LOH results
 ##### Load all PureCN outputs: both from 931070 and S0293689
 ```{r}
-data_dir = "~/Documents/github/PureCN_manuscript/Results/LOH/extdata"
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript/Results/LOH/extdata"
 HLA_931070 = read.table(file.path(data_dir, "931070_HLA_LOH_gene.tsv"), stringsAsFactors = FALSE)
 HLA_S0293689 = read.table(file.path(data_dir, "S0293689_HLA_LOH_gene.tsv"), stringsAsFactors = FALSE)
 
@@ -175,7 +175,7 @@ HLA_all = HLA_all[complete.cases(HLA_all),]   # 140 obs.
 
 ##### Save
 ```{r eval=FALSE}
-write.csv(HLA_all, file = "~/Documents/github/PureCN_manuscript/Results/LOH/extdata/HLA_all.tsv")
+write.csv(HLA_all, file = "~/wallabe4_backup/github/PureCN_manuscript/Results/LOH/extdata/HLA_all.tsv")
 ```
 
 

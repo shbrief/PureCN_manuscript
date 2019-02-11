@@ -29,12 +29,12 @@ library(dplyr)
 ```
 
 ```{r}
-source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/non_dup.R")
+source("~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
 ```
 
 ```{r}
-ov_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Results"
-luad_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/luad/Results"
+ov_dir = "~/wallabe4_backup/github/PureCN_manuscript/Results"
+luad_dir = "~/wallabe4_backup/github/PureCN_manuscript/luad/Results"
 ```
 
 ## Combine TCGA-OV outputs
@@ -111,5 +111,5 @@ tail(puri_ploi_all, 3)
 ##### Save
 Table1.Sheet1. Purity and Ploidy
 ```{r eval=FALSE}
-write.csv(puri_ploi_all, file = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Tables/Table1_puri_ploi.csv")
+write.csv(puri_ploi_all, file = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Tables/Table1_puri_ploi.csv")
 ```
