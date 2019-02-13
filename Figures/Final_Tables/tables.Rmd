@@ -1,0 +1,81 @@
+---
+title: "Table : LOH Summary"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Load TCGA-OV outputs
+```{r}
+ov_dir = "~/wallabe4_backup/github/PureCN_manuscript/Results/LOH/extdata"
+ov_LOH_both = read.csv(file.path(ov_dir, "OV_LOH_both.tsv"))[,-1]
+```
+
+##### Make the PureCN major allele copy number column
+```{r}
+ov_LOH_both$HLAA_C_t = ov_LOH_both$HLAA_C_t - ov_LOH_both$HLAA_M_t
+ov_LOH_both$HLAB_C_t = ov_LOH_both$HLAB_C_t - ov_LOH_both$HLAB_M_t
+ov_LOH_both$HLAC_C_t = ov_LOH_both$HLAC_C_t - ov_LOH_both$HLAC_M_t
+ov_LOH_both$TP53_C_t = ov_LOH_both$TP53_C_t - ov_LOH_both$TP53_M_t
+
+names(ov_LOH_both)[-1] = c("HLAA_major_ABS", "HLAA_minor_ABS", "HLAA_LOH_ABS",
+                             "HLAB_major_ABS", "HLAB_minor_ABS", "HLAB_LOH_ABS",
+                             "HLAC_major_ABS", "HLAC_minor_ABS", "HLAC_LOH_ABS",
+                             "TP53_major_ABS", "TP53_minor_ABS", "TP53_LOH_ABS",
+                             "HLAA_major_PCN", "HLAA_minor_PCN", "HLAA_LOH_PCN",
+                             "HLAB_major_PCN", "HLAB_minor_PCN", "HLAB_LOH_PCN",
+                             "HLAC_major_PCN", "HLAC_minor_PCN", "HLAC_LOH_PCN", 
+                             "TP53_major_PCN", "TP53_minor_PCN", "TP53_LOH_PCN", "Kit"
+                             )
+
+ov_LOH_both$Sample = "OV"
+```
+
+## Load TCGA-LUAD outputs
+```{r}
+luad_dir = "~/wallabe4_backup/github/PureCN_manuscript/luad/Results/LOH/extdata"
+luad_LOH_both = read.csv(file.path(luad_dir, "luad_LOH_both.tsv"))[,-1]
+```
+
+##### Make the PureCN major allele copy number column 
+```{r}
+luad_LOH_both$HLAA_C_t = luad_LOH_both$HLAA_C_t - luad_LOH_both$HLAA_M_t
+luad_LOH_both$HLAB_C_t = luad_LOH_both$HLAB_C_t - luad_LOH_both$HLAB_M_t
+luad_LOH_both$HLAC_C_t = luad_LOH_both$HLAC_C_t - luad_LOH_both$HLAC_M_t
+luad_LOH_both$TP53_C_t = luad_LOH_both$TP53_C_t - luad_LOH_both$TP53_M_t
+
+
+names(luad_LOH_both)[-1] = c("HLAA_major_ABS", "HLAA_minor_ABS", "HLAA_LOH_ABS",
+                             "HLAB_major_ABS", "HLAB_minor_ABS", "HLAB_LOH_ABS",
+                             "HLAC_major_ABS", "HLAC_minor_ABS", "HLAC_LOH_ABS",
+                             "TP53_major_ABS", "TP53_minor_ABS", "TP53_LOH_ABS",
+                             "HLAA_major_PCN", "HLAA_minor_PCN", "HLAA_LOH_PCN",
+                             "HLAB_major_PCN", "HLAB_minor_PCN", "HLAB_LOH_PCN",
+                             "HLAC_major_PCN", "HLAC_minor_PCN", "HLAC_LOH_PCN", 
+                             "TP53_major_PCN", "TP53_minor_PCN", "TP53_LOH_PCN"
+                             )
+
+luad_LOH_both$Kit = "S0293689"
+luad_LOH_both$Sample = "LUAD"
+```
+
+## Combine all results
+```{r}
+LOH_all = rbind(ov_LOH_both, luad_LOH_both)
+```
+
+##### Save
+```{r eval=FALSE}
+write.csv(LOH_all, file = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Tables/Table_LOH.csv")
+```

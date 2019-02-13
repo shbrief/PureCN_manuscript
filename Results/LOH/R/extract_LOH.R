@@ -4,25 +4,25 @@
 catalog = "S0293689"
 
 library(dplyr)
-LOH_dir = "~/Documents/github/PureCN_manuscript/Results/LOH"
-out_dir = file.path(LOH_dir, "extdata")
+library(readr)
+library(GenomicRanges)
+LOH_dir = "~/wallabe4_backup/github/PureCN_manuscript/Results/LOH"
+out_dir = file.path(LOH_dir, "data")
 
-data_dir = file.path("/data/16tb/CNVworkflow", catalog, "purecn_output", paste0(catalog, "_PureCN"))
+data_dir = file.path("~/wallabe4_backup/data/CNVworkflow", catalog, "purecn_output", paste0(catalog, "_PureCN"))
 tumor_dir = file.path(data_dir, "tumor_only")
 paired_dir = file.path(data_dir, "matching_normal")
 
-# a list of SampleID, which has '_mutation_burden.csv' output
+# a list of SampleID, which has '_genes.csv' output
 mut = list.files(paired_dir)
-mut = mut[file.exists(file.path(paired_dir, mut, paste0(mut, "_genes.csv")))]
+mut = mut[grep("*_genes.csv$", mut)]
 
 # Gene Of Interest
 goi = c("TP53", "HLA-A", "HLA-B", "HLA-C")   
 
 # extract somatic.rate.ontarget
 loh_list = lapply(seq_along(mut), function(i){
-  fname = mut[i]
-  loh_fname = file.path(fname, paste0(fname, "_genes.csv"))
-  loh_tumor = read.csv(file.path(tumor_dir, loh_fname)) %>% GRanges(.)
+  loh_tumor = read.csv(file.path(tumor_dir, mut[i])) %>% GRanges(.)
   loh_tumor = loh_tumor[which(loh_tumor$gene.symbol %in% goi),] 
 }) 
 
@@ -31,9 +31,7 @@ names(loh_tumor_gr) = mut
 rm(loh_list)
 
 loh_list = lapply(seq_along(mut), function(i){
-  fname = mut[i]
-  loh_fname = file.path(mut[i], paste0(mut[i], "_genes.csv"))
-  loh_paired = read.csv(file.path(paired_dir, loh_fname)) %>% GRanges(.)
+  loh_paired = read.csv(file.path(paired_dir, mut[i])) %>% GRanges(.)
   loh_paired = loh_paired[which(loh_paired$gene.symbol %in% goi),]
 }) 
 
@@ -42,47 +40,52 @@ names(loh_paired_gr) = mut
 rm(loh_list)
 
 if (catalog == "931070") {
-  sampleMap_931070 = read_csv("/data/16tb/CNVworkflow/931070/sampleMap_931070.csv")
+  sampleMap_931070 = read.csv("~/wallabe4_backup/data/CNVworkflow/931070/sampleMap_931070.csv")[,-1]
   sampleMap_931070$submitter = stringr::str_extract(sampleMap_931070$barcode, "TCGA.{11}")
   for (i in seq_along(loh_tumor_gr)) {
-    fname = paste0(names(loh_tumor_gr)[i], ".bam")
+    fname = gsub("_genes.csv$", ".bam", names(loh_tumor_gr[i]))
     names(loh_tumor_gr)[i] = sampleMap_931070[which(sampleMap_931070$filename == fname),]$submitter
-    fname = paste0(names(loh_paired_gr)[i], ".bam")
+    fname = gsub("_genes.csv$", ".bam", names(loh_paired_gr[i]))
     names(loh_paired_gr)[i] = sampleMap_931070[which(sampleMap_931070$filename == fname),]$submitter
   }
 } else if (catalog == "S0293689") {
-  sampleMap_S0293689 = read_csv("/data/16tb/CNVworkflow/S0293689/sampleMap_S0293689.csv")
+  sampleMap_S0293689 = read.csv("~/wallabe4_backup/data/CNVworkflow/S0293689/sampleMap_S0293689.csv")[,-1]
   sampleMap_S0293689$submitter = stringr::str_extract(sampleMap_S0293689$barcode, "TCGA.{11}")
   for (i in seq_along(loh_paired_gr)) {
-    fname = paste0(names(loh_tumor_gr)[i], ".bam")
+      fname = gsub("_genes.csv$", ".bam", names(loh_tumor_gr[i]))
     names(loh_tumor_gr)[i] = sampleMap_S0293689[which(sampleMap_S0293689$filename == fname),]$submitter
-    fname = paste0(names(loh_paired_gr)[i], ".bam")
+    fname = gsub("_genes.csv$", ".bam", names(loh_paired_gr[i]))
     names(loh_paired_gr)[i] = sampleMap_S0293689[which(sampleMap_S0293689$filename == fname),]$submitter
   }
 }
 
-# save a table of LOH outputs
+# save a table of LOH outputs (in GRangesList)
 saveRDS(loh_tumor_gr, file = file.path(out_dir, paste0(catalog, "_LOH_tumor.rds")))
 saveRDS(loh_paired_gr, file = file.path(out_dir, paste0(catalog, "_LOH_paired.rds")))
 
-# # extract somatic.rate.ontarget
-# loh_list = lapply(seq_along(mut), function(i){
-#   loh_fname = file.path(mut[i], paste0(mut[i], "_genes.csv"))
-#   loh_tumor = read.csv(file.path(tumor_dir, loh_fname))
-#   loh_paired = read.csv(file.path(paired_dir, loh_fname))
-#   
-#   data.frame(sampleID = mut[i], 
-#             HLAA_LOH_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-A"),]$loh, 
-#             HLAA_LOH_p = loh_paired[which(loh_tumor$gene.symbol == "HLA-A"),]$loh,
-#             HLAB_LOH_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-B"),]$loh, 
-#             HLAB_LOH_p = loh_paired[which(loh_tumor$gene.symbol == "HLA-B"),]$loh,
-#             HLAC_LOH_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-C"),]$loh, 
-#             HLAC_LOH_p = loh_paired[which(loh_tumor$gene.symbol == "HLA-C"),]$loh
-#             )
-# }) 
-# 
-# loh_rate = data.frame()
-# for (i in seq_along(loh_list)) {loh_rate = rbind(loh_rate, loh_list[[i]])}
-# 
-# # save a table of LOH outputs
-# write.table(loh_rate, file = file.path(out_dir, paste0(catalog, "_HLA_LOH.tsv")))
+# extract LOH info
+# C = Segment integer copy number
+# M = Minor integer copy number (M + N = C, M ≤ N)
+loh_list = lapply(seq_along(mut), function(i){
+    loh_tumor = read.csv(file.path(tumor_dir, mut[i]))
+    data.frame(sampleID = mut[i],
+               HLAA_C_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-A"),]$C,
+               HLAA_M_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-A"),]$M,
+               HLAA_LOH_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-A"),]$loh,
+               HLAB_C_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-B"),]$C,
+               HLAB_M_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-B"),]$M,
+               HLAB_LOH_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-B"),]$loh,
+               HLAC_C_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-C"),]$C,
+               HLAC_M_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-C"),]$M,
+               HLAC_LOH_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-C"),]$loh,
+               TP53_C_t = loh_tumor[which(loh_tumor$gene.symbol == "TP53"),]$C,
+               TP53_M_t = loh_tumor[which(loh_tumor$gene.symbol == "TP53"),]$M,
+               TP53_LOH_t = loh_tumor[which(loh_tumor$gene.symbol == "TP53"),]$loh
+    )
+})
+
+loh_rate = data.frame()
+for (i in seq_along(loh_list)) {loh_rate = rbind(loh_rate, loh_list[[i]])}
+
+# save a table of LOH outputs
+write.table(loh_rate, file = file.path(LOH_dir, "extdata", paste0(catalog, "_LOH_tumor_all.tsv")))

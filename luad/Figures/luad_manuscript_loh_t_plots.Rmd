@@ -30,10 +30,11 @@ library(cowplot)
 
 ## Load LOH output
 ```{r}
-data_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup"
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript"
 results_dir = file.path(data_dir, "luad/Results/LOH")
+
 TP53_all = read.csv(file.path(results_dir, "extdata/luad_TP53_all.tsv"))[,-1]   # 332 obs.
-HLA_all = read.csv(file.path(results_dir, "extdata/luad_HLA_all.tsv"))[,-1]   # 297 obs.
+HLA_all = read.csv(file.path(results_dir, "extdata/luad_HLA_all.tsv"))[,-1]   # 298 obs.
 ```
 
 ## TP53
@@ -70,23 +71,19 @@ TP53_Disagree_purity = x$Purity_PCN_t[c(ABSOLUTE, PCN)]
 TP53_Agree = summary(TP53_Agree_purity) 
 TP53_Disagree = summary(TP53_Disagree_purity)
 
-<<<<<<< HEAD
 res = wilcox.test(TP53_Agree_purity, TP53_Disagree_purity, var.equal = TRUE)
-=======
-res = t.test(TP53_Agree_purity, TP53_Disagree_purity, var.equal = TRUE)
->>>>>>> 96ebf69334c5473e276c5bbab9659e0d25fb340e
 TP53_pvalue = res$p.value
 
 rm(x)
 ```
 
 ## HLA
-Total 297 obs.
+Total 298 obs.
 
 ##### HLA-A
 ```{r}
 both = which(HLA_all$HLAA_LOH == TRUE & HLA_all$HLAA_LOH_t == TRUE)   # 87
-neither = which(HLA_all$HLAA_LOH == FALSE & HLA_all$HLAA_LOH_t == FALSE)   # 182
+neither = which(HLA_all$HLAA_LOH == FALSE & HLA_all$HLAA_LOH_t == FALSE)   # 183
 ABSOLUTE = which(HLA_all$HLAA_LOH == TRUE & HLA_all$HLAA_LOH_t == FALSE)   # 13
 PCN = which(HLA_all$HLAA_LOH == FALSE & HLA_all$HLAA_LOH_t == TRUE)   # 15
 
@@ -115,11 +112,7 @@ HLAA_Disagree_purity = x$Purity_PCN_t[c(ABSOLUTE, PCN)]
 HLAA_Agree = summary(HLAA_Agree_purity) 
 HLAA_Disagree = summary(HLAA_Disagree_purity)
 
-<<<<<<< HEAD
 res = wilcox.test(HLAA_Agree_purity, HLAA_Disagree_purity, var.equal = TRUE)
-=======
-res = t.test(HLAA_Agree_purity, HLAA_Disagree_purity, var.equal = TRUE)
->>>>>>> 96ebf69334c5473e276c5bbab9659e0d25fb340e
 HLAA_pvalue = res$p.value
 
 rm(x)
@@ -130,7 +123,7 @@ rm(x)
 both = which(HLA_all$HLAB_LOH == TRUE & HLA_all$HLAB_LOH_t == TRUE)   # 88
 neither = which(HLA_all$HLAB_LOH == FALSE & HLA_all$HLAB_LOH_t == FALSE)   # 184
 ABSOLUTE = which(HLA_all$HLAB_LOH == TRUE & HLA_all$HLAB_LOH_t == FALSE)   # 11
-PCN = which(HLA_all$HLAB_LOH == FALSE & HLA_all$HLAB_LOH_t == TRUE)   # 14
+PCN = which(HLA_all$HLAB_LOH == FALSE & HLA_all$HLAB_LOH_t == TRUE)   # 15
 
 HLA_all$HLAB_abs_t = NA
 HLA_all$HLAB_abs_t[both] = "1"
@@ -157,11 +150,7 @@ HLAB_Disagree_purity = x$Purity_PCN_t[c(ABSOLUTE, PCN)]
 HLAB_Agree = summary(HLAB_Agree_purity) 
 HLAB_Disagree = summary(HLAB_Disagree_purity)
 
-<<<<<<< HEAD
 res = wilcox.test(HLAB_Agree_purity, HLAB_Disagree_purity, var.equal = TRUE)
-=======
-res = t.test(HLAB_Agree_purity, HLAB_Disagree_purity, var.equal = TRUE)
->>>>>>> 96ebf69334c5473e276c5bbab9659e0d25fb340e
 HLAB_pvalue = res$p.value
 
 rm(x)
@@ -170,7 +159,7 @@ rm(x)
 ##### HLA-C
 ```{r}
 both = which(HLA_all$HLAC_LOH == TRUE & HLA_all$HLAC_LOH_t == TRUE)   # 88
-neither = which(HLA_all$HLAC_LOH == FALSE & HLA_all$HLAC_LOH_t == FALSE)   # 182
+neither = which(HLA_all$HLAC_LOH == FALSE & HLA_all$HLAC_LOH_t == FALSE)   # 183
 ABSOLUTE = which(HLA_all$HLAC_LOH == TRUE & HLA_all$HLAC_LOH_t == FALSE)   # 12
 PCN = which(HLA_all$HLAC_LOH == FALSE & HLA_all$HLAC_LOH_t == TRUE)   # 15
 
@@ -199,11 +188,7 @@ HLAC_Disagree_purity = x$Purity_PCN_t[c(ABSOLUTE, PCN)]
 HLAC_Agree = summary(HLAC_Agree_purity) 
 HLAC_Disagree = summary(HLAC_Disagree_purity)
 
-<<<<<<< HEAD
 res = wilcox.test(HLAC_Agree_purity, HLAC_Disagree_purity, var.equal = TRUE)
-=======
-res = t.test(HLAC_Agree_purity, HLAC_Disagree_purity, var.equal = TRUE)
->>>>>>> 96ebf69334c5473e276c5bbab9659e0d25fb340e
 HLAC_pvalue = res$p.value
 
 rm(x)
@@ -271,13 +256,8 @@ LOH_t_plot = ggplot(data, aes(fill=condition, y=value, x = type, order = as.nume
         axis.text.y = element_text(size = 10, face = "bold"), 
         # axis.title.x = element_text(size = 12, face = "bold"), 
         axis.title.x = element_blank(),
-<<<<<<< HEAD
-        axis.title.y = element_text(size = 12, face = "bold"),
-        # axis.title.y = element_blank(),
-=======
         # axis.title.y = element_text(size = 12, face = "bold"),
         axis.title.y = element_blank(),
->>>>>>> 96ebf69334c5473e276c5bbab9659e0d25fb340e
         axis.line = element_line(colour = "black", size = 0.5),
         panel.grid.major = element_line(), 
         panel.grid.minor = element_line(),
@@ -295,5 +275,5 @@ LOH_t_plot
 ```
 
 ```{r eval=FALSE}
-saveRDS(LOH_t_plot, file = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/Fig1F.luad_loh.rds")
+saveRDS(LOH_t_plot, file = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures/Fig1F.luad_loh.rds")
 ```

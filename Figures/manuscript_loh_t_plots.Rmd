@@ -30,9 +30,9 @@ library(cowplot)
 
 ## Load LOH output
 ```{r}
-results_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Results/LOH"
-TP53_all = read.csv(file.path(results_dir, "extdata/TP53_all.tsv"))[,-1]
-HLA_all = read.csv(file.path(results_dir, "extdata/HLA_all.tsv"))[,-1]
+results_dir = "~/wallabe4_backup/github/PureCN_manuscript/Results/LOH"
+TP53_all = read.csv(file.path(results_dir, "extdata/OV_TP53_all.tsv"))[,-1]
+HLA_all = read.csv(file.path(results_dir, "extdata/OV_HLA_all.tsv"))[,-1]
 ```
 
 ## TP53
@@ -59,14 +59,14 @@ TP53 = table(TP53_all$abs_t)
 ```
 
 ## HLA
-Total 140 obs.
+Total 143 obs.
 
 ##### HLA-A
 ```{r}
-both = which(HLA_all$HLAA_LOH == TRUE & HLA_all$HLAA_LOH_t == TRUE)   # 37
-neither = which(HLA_all$HLAA_LOH == FALSE & HLA_all$HLAA_LOH_t == FALSE)   # 94
+both = which(HLA_all$HLAA_LOH == TRUE & HLA_all$HLAA_LOH_t == TRUE)   # 38
+neither = which(HLA_all$HLAA_LOH == FALSE & HLA_all$HLAA_LOH_t == FALSE)   # 95
 ABSOLUTE = which(HLA_all$HLAA_LOH == TRUE & HLA_all$HLAA_LOH_t == FALSE)   # 5
-PCN = which(HLA_all$HLAA_LOH == FALSE & HLA_all$HLAA_LOH_t == TRUE)   # 4
+PCN = which(HLA_all$HLAA_LOH == FALSE & HLA_all$HLAA_LOH_t == TRUE)   # 5
 
 HLA_all$HLAA_abs_t = NA
 HLA_all$HLAA_abs_t[both] = "1"
@@ -85,8 +85,8 @@ HLAA = table(HLA_all$HLAA_abs_t)
 
 ##### HLA-B
 ```{r}
-both = which(HLA_all$HLAB_LOH == TRUE & HLA_all$HLAB_LOH_t == TRUE)   # 36
-neither = which(HLA_all$HLAB_LOH == FALSE & HLA_all$HLAB_LOH_t == FALSE)   # 98
+both = which(HLA_all$HLAB_LOH == TRUE & HLA_all$HLAB_LOH_t == TRUE)   # 37
+neither = which(HLA_all$HLAB_LOH == FALSE & HLA_all$HLAB_LOH_t == FALSE)   # 100
 ABSOLUTE = which(HLA_all$HLAB_LOH == TRUE & HLA_all$HLAB_LOH_t == FALSE)   # 5
 PCN = which(HLA_all$HLAB_LOH == FALSE & HLA_all$HLAB_LOH_t == TRUE)   # 1
 
@@ -108,9 +108,9 @@ HLAB = table(HLA_all$HLAB_abs_t)
 ##### HLA-C
 ```{r}
 both = which(HLA_all$HLAC_LOH == TRUE & HLA_all$HLAC_LOH_t == TRUE)   # 36
-neither = which(HLA_all$HLAC_LOH == FALSE & HLA_all$HLAC_LOH_t == FALSE)   # 97
-ABSOLUTE = which(HLA_all$HLAC_LOH == TRUE & HLA_all$HLAC_LOH_t == FALSE)   # 5
-PCN = which(HLA_all$HLAC_LOH == FALSE & HLA_all$HLAC_LOH_t == TRUE)   # 2
+neither = which(HLA_all$HLAC_LOH == FALSE & HLA_all$HLAC_LOH_t == FALSE)   # 98
+ABSOLUTE = which(HLA_all$HLAC_LOH == TRUE & HLA_all$HLAC_LOH_t == FALSE)   # 6
+PCN = which(HLA_all$HLAC_LOH == FALSE & HLA_all$HLAC_LOH_t == TRUE)   # 3
 
 HLA_all$HLAC_abs_t = NA
 HLA_all$HLAC_abs_t[both] = "1"
@@ -184,5 +184,5 @@ LOH_t_plot
 ```
 
 ```{r eval=FALSE}
-saveRDS(LOH_t_plot, file = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/Fig1E.ovc_loh.rds")
+saveRDS(LOH_t_plot, file = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures/Fig1E.ovc_loh.rds")
 ```

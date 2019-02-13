@@ -1,0 +1,65 @@
+---
+title: "PureCN flag on TP53 (NA in ABSOLUTE)"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+a = c("TCGA-10-0934-01", "TCGA-24-2038-01", "TCGA-25-2408-01", "TCGA-61-2092-01",
+      "TCGA-29-1690-01", "TCGA-25-1316-01", "TCGA-09-1672-01")
+loh <- read.csv("~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Tables/Table2_LOH.csv")[,-1]
+x = loh[which(loh$SampleId %in% a),]
+```
+
+## 931070
+```{r}
+data_dir = "~/wallabe4_backup/data/CNVworkflow/931070/purecn_output/931070_PureCN/tumor_only"
+mut = list.files(data_dir)
+mut = mut[grep("*_genes.csv$", mut)]
+mut = data.frame(fname = mut, barcode = stringr::str_extract(mut, "TCGA.{11}"))
+mut = mut[which(mut$barcode %in% a),]
+
+summary = data.frame(SampleId = NA, M.flagged = NA)
+for (i in 1:nrow(mut)) {
+    y = read.csv(file.path(data_dir, mut$fname[i]))[,-1]
+    y = y[which(y$gene.symbol == "TP53"),]$M.flagged
+    new_entry = data.frame(SampleId = mut$barcode[i],
+                           M.flagged = y)
+    summary = rbind(summary, new_entry)
+}
+
+summary[-1,]
+rm(mut, new_entry, summary, data_dir, i, y)
+```
+
+## S0293689
+```{r}
+map_S0293689 = read.csv("~/wallabe4_backup/data/CNVworkflow/S0293689/sampleMap_S0293689.csv", stringsAsFactors = FALSE)[,-1]
+map_S0293689$filename = tools::file_path_sans_ext(map_S0293689$filename)
+
+b = map_S0293689[which(stringr::str_extract(map_S0293689$barcode, "TCGA.{11}") %in% a),]
+b
+```
+
+```{r}
+data_dir = "~/wallabe4_backup/data/CNVworkflow/S0293689/purecn_output/S0293689_PureCN/tumor_only"
+
+summary = data.frame(SampleId = NA, M.flagged = NA)
+for (i in 1:nrow(b)) {
+    y = read.csv(file.path(data_dir, paste0(b$filename[i], "_genes.csv")))[,-1]
+    y = y[which(y$gene.symbol == "TP53"),]$M.flagged
+    new_entry = data.frame(SampleId = stringr::str_extract(b$barcode[i], "TCGA.{11}"),
+                           M.flagged = y)
+    summary = rbind(summary, new_entry)
+}
+
+summary[-1,]
+```
+
+
+
+
+

@@ -1,32 +1,35 @@
 # Extract LOH of HLAA, HLAA/B/C
 
 library(dplyr)
-LOH_dir = "~/Documents/github/PureCN_manuscript/luad/Results/LOH"
+LOH_dir = "~/wallabe4_backup/github/PureCN_manuscript/luad/Results/LOH"
 out_dir = file.path(LOH_dir, "extdata")
 
-data_dir = "/data/ovarian/CNVworkflow_LUAD/purecn_output/PureCN"
+data_dir = "~/wallabe4_backup/data/CNVworkflow_LUAD/purecn_output/PureCN"
 tumor_dir = file.path(data_dir, "tumor_only")
 paired_dir = file.path(data_dir, "matching_normal")
 
-# a list of SampleID, which has '_mutation_burden.csv' output
+# a list of SampleID, which has '_genes.csv' output
 mut = list.files(paired_dir)
-mut = mut[file.exists(file.path(paired_dir, mut, paste0(mut, "_genes.csv")))]
+mut = mut[grep("*_genes.csv$", mut)]
 
-# extract loh info
+## extract LOH info
+# C = Segment integer copy number
+# M = Minor integer copy number (M + N = C, M ≤ N)
 loh_list = lapply(seq_along(mut), function(i){
-  loh_fname = file.path(mut[i], paste0(mut[i], "_genes.csv"))
-  loh_tumor = read.csv(file.path(tumor_dir, loh_fname))
-  loh_paired = read.csv(file.path(paired_dir, loh_fname))
-  
+  loh_tumor = read.csv(file.path(tumor_dir, mut[i]))
   data.frame(sampleID = mut[i],
+             HLAA_C_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-A"),]$C,
+             HLAA_M_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-A"),]$M,
              HLAA_LOH_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-A"),]$loh,
-             HLAA_LOH_p = loh_paired[which(loh_tumor$gene.symbol == "HLA-A"),]$loh,
+             HLAB_C_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-B"),]$C,
+             HLAB_M_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-B"),]$M,
              HLAB_LOH_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-B"),]$loh,
-             HLAB_LOH_p = loh_paired[which(loh_tumor$gene.symbol == "HLA-B"),]$loh,
+             HLAC_C_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-C"),]$C,
+             HLAC_M_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-C"),]$M,
              HLAC_LOH_t = loh_tumor[which(loh_tumor$gene.symbol == "HLA-C"),]$loh,
-             HLAC_LOH_p = loh_paired[which(loh_tumor$gene.symbol == "HLA-C"),]$loh,
-             TP53_LOH_t = loh_tumor[which(loh_tumor$gene.symbol == "TP53"),]$loh,
-             TP53_LOH_p = loh_paired[which(loh_tumor$gene.symbol == "TP53"),]$loh
+             TP53_C_t = loh_tumor[which(loh_tumor$gene.symbol == "TP53"),]$C,
+             TP53_M_t = loh_tumor[which(loh_tumor$gene.symbol == "TP53"),]$M,
+             TP53_LOH_t = loh_tumor[which(loh_tumor$gene.symbol == "TP53"),]$loh
   )
 })
 

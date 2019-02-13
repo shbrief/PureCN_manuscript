@@ -27,12 +27,12 @@ library(dplyr)
 ```
 
 ```{r}
-source("~/Documents/github/PureCN_manuscript/Figures/final/non_dup.R")
+source("~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
 ```
 
-## LOH Granges from PureCN output
+## LOH Granges from PureCN output (GRCh38 build)
 ```{r}
-loh_dir = "~/Documents/github/PureCN_manuscript/luad/Results/LOH"
+loh_dir = "~/wallabe4_backup/github/PureCN_manuscript/luad/Results/LOH"
 luad_LOH_t = readRDS(file.path(loh_dir, "data/luad_LOH_tumor.rds")) 
 
 LOH = GRanges(seqnames(luad_LOH_t[[1]]), 
@@ -70,13 +70,17 @@ LOH_hg19 = liftOver(LOH, ch)
 
 ## Load ABSOLUTE GrangesList_Hg38
 ```{r}
-abs_gl = readRDS("~/Documents/github/subtypeHeterogeneity-master/inst/extdata/ABSOLUTE_grangeslist.rds")
+abs_gl = readRDS("~/wallabe4_backup/github/subtypeHeterogeneity-master/inst/extdata/ABSOLUTE_grangeslist.rds")
 luad_abs_gl = abs_gl[luad_442]   # 442 elements
 ```
 
 ## Extract HLA-A/B/C and TP53 LOH results from ABSOLUTE GrangesList
-```{r}
-ABS_LOH_all = data.frame(SampleId = NA, HLAA_LOH = NA, HLAB_LOH = NA, HLAC_LOH = NA, TP53_LOH = NA)
+```{r eval=FALSE}
+ABS_LOH_all = data.frame(SampleId = NA, 
+                         HLAA_major = NA, HLAA_minor = NA, HLAA_LOH = NA, 
+                         HLAB_major = NA, HLAB_minor = NA, HLAB_LOH = NA, 
+                         HLAC_major = NA, HLAC_minor = NA, HLAC_LOH = NA, 
+                         TP53_major = NA, TP53_minor = NA, TP53_LOH = NA)
 
 for (i in seq_along(luad_abs_gl)) {
   SampleId = names(luad_abs_gl[i])
@@ -85,31 +89,59 @@ for (i in seq_along(luad_abs_gl)) {
   if (1 %in% x[,"queryHits"]) {
     ind = x[which(x[,"queryHits"] == 1), "subjectHits"]
     abs_loh = luad_abs_gl[[i]][ind]
+    HLAA_major = abs_loh$Modal_HSCN_2
+    HLAA_minor = abs_loh$Modal_HSCN_1
     if (abs_loh$Modal_HSCN_1 == 0 | abs_loh$Modal_HSCN_2 == 0) HLAA_LOH = TRUE else HLAA_LOH = FALSE
-  } else {HLAA_LOH = NA}
+  } else {
+      HLAA_major = NA
+      HLAA_minor = NA
+      HLAA_LOH = NA}
   
   if (2 %in% x[,"queryHits"]) {
     ind = x[which(x[,"queryHits"] == 2), "subjectHits"]
     abs_loh = luad_abs_gl[[i]][ind]
+    HLAC_major = abs_loh$Modal_HSCN_2
+    HLAC_minor = abs_loh$Modal_HSCN_1
     if (abs_loh$Modal_HSCN_1 == 0 | abs_loh$Modal_HSCN_2 == 0) HLAC_LOH = TRUE else HLAC_LOH = FALSE
-  } else {HLAC_LOH = NA}
+  } else {
+      HLAC_major = NA
+      HLAC_minor = NA
+      HLAC_LOH = NA}
   
   if (3 %in% x[,"queryHits"]) {
     ind = x[which(x[,"queryHits"] == 3), "subjectHits"]
     abs_loh = luad_abs_gl[[i]][ind]
+    HLAB_major = abs_loh$Modal_HSCN_2
+    HLAB_minor = abs_loh$Modal_HSCN_1
     if (abs_loh$Modal_HSCN_1 == 0 | abs_loh$Modal_HSCN_2 == 0) HLAB_LOH = TRUE else HLAB_LOH = FALSE
-  } else {HLAB_LOH = NA}
+  } else {
+      HLAB_major = NA
+      HLAB_minor = NA
+      HLAB_LOH = NA}
   
   if (4 %in% x[,"queryHits"]) {
     ind = x[which(x[,"queryHits"] == 4), "subjectHits"]
     abs_loh = luad_abs_gl[[i]][ind]
+    TP53_major = abs_loh$Modal_HSCN_2
+    TP53_minor = abs_loh$Modal_HSCN_1
     if (abs_loh$Modal_HSCN_1 == 0 | abs_loh$Modal_HSCN_2 == 0) TP53_LOH = TRUE else TP53_LOH = FALSE
-  } else {TP53_LOH = NA}
+  } else {
+      TP53_major = NA
+      TP53_minor = NA
+      TP53_LOH = NA}
 
   new_entry = data.frame(SampleId = SampleId,
+                         HLAA_major = HLAA_major,
+                         HLAA_minor = HLAA_minor,
                          HLAA_LOH = HLAA_LOH, 
+                         HLAB_major = HLAB_major,
+                         HLAB_minor = HLAB_minor,
                          HLAB_LOH = HLAB_LOH,
+                         HLAC_major = HLAC_major,
+                         HLAC_minor = HLAC_minor,
                          HLAC_LOH = HLAC_LOH, 
+                         TP53_major = TP53_major,
+                         TP53_minor = TP53_minor,
                          TP53_LOH = TP53_LOH)
   ABS_LOH_all = rbind(ABS_LOH_all, new_entry)
 }
@@ -120,17 +152,17 @@ head(ABS_LOH_all)
 
 ##### Save the LOH summary of ABSOLUTE
 ```{r eval=FALSE}
-write.csv(ABS_LOH_all, file = "~/Documents/github/PureCN_manuscript/luad/Results/LOH/extdata/luad_ABS_LOH_all.tsv")
+write.csv(ABS_LOH_all, file = "~/wallabe4_backup/github/PureCN_manuscript/luad/Results/LOH/extdata/luad_ABS_LOH_all.tsv")
 ```
 
 ## Combine LOH results
 ```{r echo=FALSE}
-ABS_LOH_all = read.csv("~/Documents/github/PureCN_manuscript/luad/Results/LOH/extdata/luad_ABS_LOH_all.tsv")[,-1]
+ABS_LOH_all = read.csv("~/wallabe4_backup/github/PureCN_manuscript/luad/Results/LOH/extdata/luad_ABS_LOH_all.tsv")[,-1]
 ```
 
 ##### Load all PureCN outputs
 ```{r}
-data_dir = "~/Documents/github/PureCN_manuscript/luad/Results/LOH/extdata"
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript/luad/Results/LOH/extdata"
 LUAD_LOH = read.table(file.path(data_dir, "luad_LOH.tsv"), stringsAsFactors = FALSE)
 
 # change S0293689 filename to barcode
@@ -143,17 +175,22 @@ names(LUAD_LOH)[1] = "SampleId"
 LUAD_LOH_all = left_join(ABS_LOH_all, LUAD_LOH, by = "SampleId")   # 442 obs.
 ```
 
+Save
+```{r eval=FALSE}
+write.csv(LUAD_LOH_all, file = "~/wallabe4_backup/github/PureCN_manuscript/luad/Results/LOH/extdata/luad_LOH_both.tsv")
+```
+
 keep only the complete cases (remove any row with NA value)
 ```{r}
-LUAD_LOH_TP53 = LUAD_LOH_all[,c(1,5,12,13)]
-LUAD_LOH_HLA = LUAD_LOH_all[,-c(5,12,13)]
+LUAD_LOH_TP53 = LUAD_LOH_all[,c(1, 11:13, 23:25)]   # 442 obs.
+LUAD_LOH_HLA = LUAD_LOH_all[,-c(11:13, 23:25)]   # 442 obs.
 
 LUAD_LOH_TP53 = LUAD_LOH_TP53[complete.cases(LUAD_LOH_TP53),]   # 332 obs.
-LUAD_LOH_HLA = LUAD_LOH_HLA[complete.cases(LUAD_LOH_HLA),]   # 297 obs.
+LUAD_LOH_HLA = LUAD_LOH_HLA[complete.cases(LUAD_LOH_HLA),]   # 298 obs.
 ```
 
 ##### Save
 ```{r eval=FALSE}
-write.csv(LUAD_LOH_TP53, file = "~/Documents/github/PureCN_manuscript/luad/Results/LOH/extdata/luad_TP53_all.tsv")
-write.csv(LUAD_LOH_HLA, file = "~/Documents/github/PureCN_manuscript/luad/Results/LOH/extdata/luad_HLA_all.tsv")
+write.csv(LUAD_LOH_TP53, file = "~/wallabe4_backup/github/PureCN_manuscript/luad/Results/LOH/extdata/luad_TP53_all.tsv")
+write.csv(LUAD_LOH_HLA, file = "~/wallabe4_backup/github/PureCN_manuscript/luad/Results/LOH/extdata/luad_HLA_all.tsv")
 ```
