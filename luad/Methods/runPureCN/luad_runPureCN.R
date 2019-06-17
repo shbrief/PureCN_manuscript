@@ -1,15 +1,17 @@
 #!/usr/bin/env Rscript
 
-# input arguments ----------------------------------------------------------
+## input arguments ----------------------------------------------------------
+# this 'run_type' values are for manifest subsetting
 run_type = "tumor"
 # run_type = "normal"
 
 luad_dir = "/home/sehyun/Documents/github/PureCN_manuscript/luad"
 source(file.path(luad_dir, "Methods/luad_sample_sorting.R"))
 
-# run_type = "tumor_only"
-run_type = "matching_normal"
-# --------------------------------------------------------------------------
+# this 'run_type' values are for availability of matching normal for vcf/stats
+run_type = "tumor_only"
+# run_type = "matching_normal"
+## --------------------------------------------------------------------------
 
 PURECN=system.file("extdata", package = "PureCN")
 OUT="/data/ovarian/CNVworkflow_LUAD"
@@ -35,8 +37,10 @@ allcalls_purecn <- lapply(seq_along(bed_subset$id), function(i){
                          "--out", out_dir,
                          "--tumor", file.path(PURECN_OUT, "tumor_cov", paste0(pre_fname, "_coverage_loess.txt")), 
                          "--sampleid", pre_fname,
-                         "--vcf", file.path(MUTECT_OUT, paste0("stat_", run_type), paste0(pre_fname, "_matching_mutect.vcf")),
-                         "--statsfile", file.path(MUTECT_OUT, paste0("stat_", run_type), paste0(pre_fname, "_matching_mutect_stat.txt")),
+                         # "--vcf", file.path(MUTECT_OUT, paste0("stat_", run_type), paste0(pre_fname, "_matching_mutect.vcf")),
+                         # "--statsfile", file.path(MUTECT_OUT, paste0("stat_", run_type), paste0(pre_fname, "_matching_mutect_stat.txt")),
+                         "--vcf", file.path(MUTECT_OUT, paste0("stat_", run_type), paste0(pre_fname, "_mutect.vcf")),
+                         "--statsfile", file.path(MUTECT_OUT, paste0("stat_", run_type), paste0(pre_fname, "_mutect_stat.txt")),
                          "--normaldb", file.path(PURECN_OUT, "normalDB/normalDB_hg38.rds"),
                          "--normal_panel", file.path(PURECN_OUT, "normalDB/mapping_bias_hg38.rds"),
                          "--intervals", file.path(BEDFILES, bed_pre, paste0(bed_pre, "_hg38_gcgene.txt")),

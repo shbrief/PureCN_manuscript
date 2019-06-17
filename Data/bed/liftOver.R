@@ -16,7 +16,9 @@ library(rtracklayer)
 ch = import.chain(file.path(bedfiles.dir, "hg19ToHg38.over.chain"))
 bed_df = read.table(new_bed)
 bed_df_ordered = bed_df[order(bed_df$V1, bed_df$V2),]
-bed_gr = GRanges(seqnames = bed_df_ordered$V1, ranges = IRanges(start = bed_df_ordered$V2, end = bed_df_ordered$V3), strand = bed_df_ordered$V5)
+bed_gr = GRanges(seqnames = bed_df_ordered$V1, 
+                 ranges = IRanges(start = bed_df_ordered$V2, end = bed_df_ordered$V3), 
+                 strand = bed_df_ordered$V5)
 bed_hg38 = liftOver(bed_gr, ch)
 unlist_bed_hg38 = unlist(bed_hg38)
 

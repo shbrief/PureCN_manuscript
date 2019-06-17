@@ -34,7 +34,7 @@ library(ggplot2)
 
 ## Load benchmark output
 ```{r}
-results_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Results"
+results_dir = "~/wallabe4_backup/github/PureCN_manuscript/Results"
 benchmark = readRDS(file.path(results_dir, "benchmark/data/all_ovc_benchmark.rds"))
 ```
 
@@ -50,8 +50,8 @@ for (i in 2:10) {
 
 ```{r echo=FALSE}
 # figure styling --> customPlot
-source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/manuscript_figure_style.R")
-source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/non_dup.R")
+source("~/wallabe4_backup/github/PureCN_manuscript/Figures/manuscript_figure_style.R")
+source("~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
 ```
 
 ```{r}
@@ -71,7 +71,7 @@ benchmark_plot = ggplot(benchmark,
   geom_point(alpha = 1/3) + 
   scale_color_gradient(low = "blue", high = "red") + 
   labs(x = "Purity",
-       y = "AUC gain PreCN over allelic fraction",   # AUC.POSTERIOR.SOMATIC - AUC.AR
+       y = "AUC gain PureCN over allelic fraction",   # AUC.POSTERIOR.SOMATIC - AUC.AR
        title = "A. TCGA-OV: AUC gain") + 
   xlim(0, 1) + ylim(0, 0.5) +
   geom_hline(yintercept = 0, linetype = "solid", color = "grey") +
@@ -86,7 +86,7 @@ benchmark_plot = ggplot(benchmark,
 ```{r fig.width = 4.5, fig.height = 4.5}
 benchmark_plot
 
-# out_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+# out_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures"
 # saveRDS(benchmark_plot, file = file.path(out_dir, "Fig2A.ovc_AUC_gain.rds"))
 ```
 
@@ -132,13 +132,13 @@ ov_accuracy = ggplot(accuracy_all, aes(x = accuracy, fill = SNV)) +
 ```{r fig.width = 4, fig.height = 4.5}
 ov_accuracy
 
-# out_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+# out_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures"
 # saveRDS(ov_accuracy, file = file.path(out_dir, "Fig2E.ov_accuracy.rds"))
 ```
 
 ## Plot SNV calling accuracy using SGZ algorithm
 ```{r echo=FALSE}
-results_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Results"
+results_dir = "~/wallabe4_backup/github/PureCN_manuscript/Results"
 benchmark_SGZ = readRDS(file.path(results_dir, "benchmark/data/all_ovc_benchmark_SGZ.rds"))
 
 for (i in 2:8) {
@@ -201,7 +201,7 @@ ov_sgz_accuracy = ggplot(accuracy_all, aes(x = accuracy, fill = SNV)) +
 ```{r fig.width = 4, fig.height = 4.5}
 ov_sgz_accuracy
 
-# out_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+# out_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures"
 # saveRDS(ov_sgz_accuracy, file = file.path(out_dir, "Fig2G.ov_sgz_accuracy.rds"))
 # saveRDS(ov_sgz_accuracy, file = file.path(out_dir, "Fig2F.ov_sgz_accuracy.rds"))
 ```

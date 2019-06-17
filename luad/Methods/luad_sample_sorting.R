@@ -1,11 +1,12 @@
 #!/usr/bin/env Rscript
+wd = "/Users/sehyunoh/wallabe4_backup"
 
 # All TCGA-LUAD samples were processed by cat# 931070
 catalog = "931070"
-source("~/Documents/github/PureCN_manuscript/Methods/input_info.R")
+source(file.path(wd, "github/PureCN_manuscript/Methods/input_info.R"))
 
 # Load manifest file
-luad_dir = "~/Documents/github/PureCN_manuscript/luad"
+luad_dir = (file.path(wd, "/github/PureCN_manuscript/luad"))
 manifest = readRDS(file.path(luad_dir, "luad_manifest_annot.rds"))
 
 # Downloaded bam files which have corresponding ABSOLUTE results
