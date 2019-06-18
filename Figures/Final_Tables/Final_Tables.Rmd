@@ -95,12 +95,27 @@ head(table_4.2, 3)
 ```
 
 ## Supplmentary Table 5. Mutational Signatures
+* Total 675 samples (233 OV + 442 LUAD)
 ```{r echo=FALSE}
 data_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Tables"
-table_5 = read.csv(file.path(data_dir, "Table5_mutSig.csv"))[,-1]
+table_5 = read.csv(file.path(data_dir, "Table5_TMB.csv"))[,-1]
+```
 
-OVC_mutSig = table_5[which(table_5$Sample == "OV"),]
-LUAD_mutSig = table_5[which(table_5$Sample == "LUAD"),]
+```{r}
+head(table_5)
+```
+
+```{r}
+tail(table_5)
+```
+
+## Supplmentary Table 6. Mutational Signatures
+```{r echo=FALSE}
+data_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Tables"
+table_6 = read.csv(file.path(data_dir, "Table6_mutSig.csv"))[,-1]
+
+OVC_mutSig = table_6[which(table_6$Sample == "OV"),]
+LUAD_mutSig = table_6[which(table_6$Sample == "LUAD"),]
 ```
 
 * Total 466 OVC samples (233 Tumor-only + 233 Paired)
@@ -110,7 +125,7 @@ sum(OVC_mutSig$Mode == "Paired")
 ```
 
 ```{r}
-head(OVC_mutSig, 3)
+head(table_6, 3)
 ```
 
 * Total 882 LUAD samples (442 Tumor-only + 440 Paired)     
@@ -121,5 +136,5 @@ sum(LUAD_mutSig$Mode == "Paired")
 ```
 
 ```{r}
-head(LUAD_mutSig, 3)
+tail(table_6, 3)
 ```

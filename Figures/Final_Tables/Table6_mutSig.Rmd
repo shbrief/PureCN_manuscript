@@ -109,5 +109,5 @@ mutSig_both = rbind(OVC_mutSig, LUAD_mutSig)
 
 ```{r eval=FALSE}
 out_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Tables"
-write.csv(mutSig_both, file = file.path(out_dir, "Table4_mutSig.csv"))
+write.csv(mutSig_both, file = file.path(out_dir, "Table6_mutSig.csv"))
 ```

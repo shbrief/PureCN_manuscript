@@ -1,0 +1,57 @@
+---
+title: "Table 5. TMB"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r echo=FALSE}
+# non-duplicated samples list
+source("~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
+```
+
+```{r TMB_OV}
+TMB_dir = "~/wallabe4_backup/github/PureCN_manuscript/Results/TMB"
+out_dir = file.path(TMB_dir, "extdata")
+
+TMB_931070 = read.table(file.path(out_dir, "931070_TMB.tsv"))
+TMB_S0293689 = read.table(file.path(out_dir, "S0293689_TMB.tsv"))
+TMB_purecn = rbind(TMB_931070, TMB_S0293689)
+
+TMB_purecn = TMB_purecn[which(stringr::str_extract(TMB_purecn$sampleID, "TCGA.{11}") %in% ovc_236),]
+TMB_OV = TMB_purecn
+rm(TMB_purecn)
+```
+
+```{r TMB_LUAD}
+TMB_dir = "~/wallabe4_backup/github/PureCN_manuscript/luad/Results/TMB"
+out_dir = file.path(TMB_dir, "extdata")
+
+TMB_purecn = read.table(file.path(out_dir, "931070_TMB.tsv"))
+TMB_purecn = TMB_purecn[which(stringr::str_extract(TMB_purecn$sampleID, "TCGA.{11}") %in% luad_442),]
+
+TMB_LUAD = TMB_purecn
+rm(TMB_purecn)
+```
+
+```{r}
+TMB_OV$Sample = "OV"
+TMB_LUAD$Sample = "LUAD"
+TMB_purecn = rbind(TMB_LUAD, TMB_OV)
+```
+
+```{r eval=FALSE}
+out_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Tables"
+write.csv(TMB_purecn, file = file.path(out_dir, "Table5_TMB.csv"))
+```

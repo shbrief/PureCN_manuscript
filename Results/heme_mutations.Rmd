@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 
 ## Heme-related mutations 
 ```{r}
-heme_gene = c("DNMT3A", "IDH1/2", "JAK2", "TET2")
+heme_gene = c("DNMT3A", "IDH1", "IDH2", "JAK2", "TET2")
 ```
 
 ```{r, echo=FALSE, results="hide", warning=FALSE}
@@ -52,7 +52,7 @@ file_p = list.files(luad_dir_p)
 source('~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R')
 ```
 
-```{r}
+```{r eval=FALSE}
 for (i in seq_along(file_t)) {
     barcode = stringr::str_extract(file_t[i], "TCGA.{11}")
     if (barcode %in% luad_442) {
@@ -72,12 +72,13 @@ for (i in 1) {
     if (barcode %in% luad_442) {
         file_path = file.path(luad_dir_t, file_t[i])
         # assign(barcode, read.csv(file_path)[,-1])
-        print(barcode)
-        barcode = read.csv(file_path)[,c("chr", "start", "gene.symbol")]
+        output = read.csv(file_path)[,c("chr", "start", "gene.symbol")]
     }
-    barcode = barcode[which(barcode$gene.symbol %in% heme_gene),]
-    print(barcode)
+    output = output[which(output$gene.symbol %in% heme_gene),]
+    output$SampleId = barcode
 }
+
+output
 ```
 
 

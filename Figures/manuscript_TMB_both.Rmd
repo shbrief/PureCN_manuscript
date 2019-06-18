@@ -31,14 +31,14 @@ library(scales)
 
 ```{r echo=FALSE}
 # figure styling --> customPlot
-source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/manuscript_figure_style.R")
+source("~/wallabe4_backup/github/PureCN_manuscript/Figures/manuscript_figure_style.R")
 
 # non-duplicated samples list
-source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/non_dup.R")
+source("~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
 ```
 
 ```{r TMB_OV}
-TMB_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Results/TMB"
+TMB_dir = "~/wallabe4_backup/github/PureCN_manuscript/Results/TMB"
 out_dir = file.path(TMB_dir, "extdata")
 
 TMB_931070 = read.table(file.path(out_dir, "931070_TMB.tsv"))
@@ -64,7 +64,7 @@ TMB_purecn = rbind(TMB_purecn, dup_subset)
 ```
 
 ```{r TMB_LUAD}
-TMB_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/luad/Results/TMB"
+TMB_dir = "~/wallabe4_backup/github/PureCN_manuscript/luad/Results/TMB"
 out_dir = file.path(TMB_dir, "extdata")
 
 TMB_purecn = read.table(file.path(out_dir, "931070_TMB.tsv"))
@@ -128,6 +128,6 @@ purecn_puri
 ```
 
 ```{r eval=FALSE}
-out_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/final"
+out_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/final"
 saveRDS(purecn_puri, file = file.path(out_dir, "Fig3A.TMB.rds"))
 ```

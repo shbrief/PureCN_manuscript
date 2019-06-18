@@ -32,8 +32,7 @@ manifest <- GenomicDataCommons::files() %>%
   GenomicDataCommons::manifest()
 
 manifest = cbind(manifest, 
-                 UUIDtoBarcode(manifest$id, id_type = "file_id", 
-                               end_point = "center"))
+                 UUIDtoBarcode(manifest$id, from_type = "file_id"))
 
 names(manifest)[7] = "barcode"
 manifest = cbind(manifest, TCGAutils::TCGAbiospec(manifest$barcode))
