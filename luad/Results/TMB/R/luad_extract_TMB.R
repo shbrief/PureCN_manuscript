@@ -6,7 +6,7 @@ catalog = "931070"
 TMB_dir = "~/Documents/github/PureCN_manuscript/luad/Results/TMB"
 out_dir = file.path(TMB_dir, "extdata")
 
-data_dir = "/data/ovarian/CNVworkflow_LUAD/purecn_output/Dx"
+data_dir = "/nobackup/16tb_a/CNVworkflow_LUAD/purecn_output/Dx"
 tumor_dir = file.path(data_dir, "tumor_only_cds")
 paired_dir = file.path(data_dir, "matching_normal_cds")
 

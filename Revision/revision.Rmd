@@ -2,19 +2,15 @@
 title: "PureCN paper revision"
 author: "Sehyun Oh"
 date: "`r Sys.Date()`"
-output: rmarkdown::html_vignette
+output:
+  BiocStyle::html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+  % \VignetteIndexEntry{Statistical analysis output}
+  % \VignetteEngine{knitr::rmarkdown}
 ---
-
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
-```
 
 # Setup
 ```{r, echo=FALSE, results="hide", warning=FALSE}
@@ -25,21 +21,12 @@ suppressPackageStartupMessages({
 })
 ```
 
-```{r}
-library(ggplot2)
-library(cowplot)
-library(patchwork)
-```
-
+# LUAD tumor-only mode
+## Load data
+Results from 442 samples are plotted (out of 507 tumor-only processed samples)
 ```{r}
 script_dir = "/home/sehyun/Documents/github/PureCN_manuscript"
 results_dir = file.path(script_dir, "luad/Results/purity_ploidy")
-```
-
-# LUAD tumor-only mode
-Results from 442 samples are plotted (out of 507 tumor-only processed samples)
-```{r}
-# 507 obs. from tumor-only mode analylsis
 purecn_puri_ploi = readRDS(file.path(results_dir, "data/luad_ABS_w_tumor_only.rds"))
 
 # 442 obs. which have matched normal samples
@@ -50,8 +37,9 @@ luad_442 = read.csv("~/Documents/github/PureCN_manuscript/luad/Results/duplicati
 purecn_puri_ploi = purecn_puri_ploi[which(purecn_puri_ploi$fullname %in% luad_442),]
 ```
 
-# Purity and Ploidy Comparisons
-```{r echo=FALSE, fig.width = 7, fig.height = 4.5}
+## Purity and Ploidy Comparisons
+These are Figure 1C and 1D in the manuscript.
+```{r echo=FALSE}
 # Purity
 df = purecn_puri_ploi
 x = "Purity_ABS"
@@ -77,7 +65,7 @@ tumor_ploi = final_plot
 rm(final_plot)
 ```
 
-```{r echo=FALSE}
+```{r echo=FALSE, fig.width = 7, fig.height = 4.5}
 tumor_puri | tumor_ploi
 ```
 
@@ -90,6 +78,9 @@ length.out <- round(fract * length(absdiff))
 fract.grid <- ind[seq_len(length.out)]
 plot(x[fract.grid], y[fract.grid])
 ```
+
+Top 80% of purity-concordant samples are marked in red and the others are colored in cyan.
+If I calculate Pearson correlation only with the concordant samples, it give 0.98.
 
 ```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
 df = purecn_puri_ploi
@@ -122,6 +113,14 @@ tumor_puri
 ```
 
 ## Ploidy of purity outliers
+**[Left]** Ploidy of PureCN and ABSOLUTE results from 20% of purity-discordant
+samples (the cyan dots from the above plot) are plotted. Pearson correltation 
+coefficient is 0.19.     
+**[Right]** Ploidy of PureCN and ABSOLUTE results from the purity-concordant 
+samples. Pearson correltation coefficient is 0.65.     
+
+*--> So a wrong purity estimates lead to a wrong ploidy estimates?*
+
 ```{r echo=FALSE, fig.width = 7, fig.height = 4.5}
 df = df[which(df$absdiff == "discordant"),]
 x = "Ploidy_ABS"
@@ -161,6 +160,10 @@ discordant_ploi | concordant_ploi
 
 
 # Ploidy outliers
+
+Top 80% of ploidy-concordant samples are marked in red and the others are colored in cyan.
+If I calculate Pearson correlation only with the concordant samples, it give 0.97.
+
 ```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
 df = purecn_puri_ploi
 x = df$Ploidy_ABS
@@ -194,6 +197,13 @@ tumor_ploid
 
 
 ## Purity of ploidy outliers
+
+**[Left]** Purity of PureCN and ABSOLUTE results from 20% of ploidy-discordant
+samples (the cyan dots from the above plot) are plotted. Pearson correltation 
+coefficient is 0.69.       
+**[Right]** Purity of PureCN and ABSOLUTE results from the ploidy-concordant 
+samples. Pearson correltation coefficient is 0.87.    
+
 ```{r echo=FALSE, fig.width = 7, fig.height = 4.5}
 df = df[which(df$absdiff == "discordant"),]
 x = "Purity_ABS"
@@ -227,7 +237,8 @@ discordant_puri | concordant_puri
 
 
 
-# Extreme Purity outliers
+# Extreme cases (2%)
+## Purity outliers
 ```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
 df = purecn_puri_ploi
 x = df$Purity_ABS
@@ -262,7 +273,7 @@ df_puri_outlier[puriOutlierInd,]
 
 
 
-# Extreme Purity outliers
+## Ploidy outliers
 ```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
 df = purecn_puri_ploi
 x = df$Ploidy_ABS

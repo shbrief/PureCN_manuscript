@@ -18,11 +18,11 @@ knitr::opts_chunk$set(
 
 ```{r echo=FALSE}
 # non-duplicated samples list
-source("~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
+source("~/Documents/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
 ```
 
 ```{r TMB_OV}
-TMB_dir = "~/wallabe4_backup/github/PureCN_manuscript/Results/TMB"
+TMB_dir = "~/Documents/github/PureCN_manuscript/Results/TMB"
 out_dir = file.path(TMB_dir, "extdata")
 
 TMB_931070 = read.table(file.path(out_dir, "931070_TMB.tsv"))
@@ -35,7 +35,7 @@ rm(TMB_purecn)
 ```
 
 ```{r TMB_LUAD}
-TMB_dir = "~/wallabe4_backup/github/PureCN_manuscript/luad/Results/TMB"
+TMB_dir = "~/Documents/github/PureCN_manuscript/luad/Results/TMB"
 out_dir = file.path(TMB_dir, "extdata")
 
 TMB_purecn = read.table(file.path(out_dir, "931070_TMB.tsv"))
@@ -52,6 +52,6 @@ TMB_purecn = rbind(TMB_LUAD, TMB_OV)
 ```
 
 ```{r eval=FALSE}
-out_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Tables"
+out_dir = "~/Documents/github/PureCN_manuscript/Figures/Final_Tables"
 write.csv(TMB_purecn, file = file.path(out_dir, "Table5_TMB.csv"))
 ```
