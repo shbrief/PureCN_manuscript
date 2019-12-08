@@ -1,0 +1,306 @@
+---
+title: "PureCN paper revision"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output:
+  BiocStyle::html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+vignette: >
+  % \VignetteIndexEntry{Statistical analysis output}
+  % \VignetteEngine{knitr::rmarkdown}
+---
+
+# Setup
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+  library(ggplot2)
+  library(cowplot)
+  library(patchwork)
+})
+```
+
+# LUAD tumor-only mode
+## Load data
+Results from 442 samples are plotted (out of 507 tumor-only processed samples)
+```{r}
+script_dir = "/home/sehyun/Documents/github/PureCN_manuscript"
+results_dir = file.path(script_dir, "luad/Results/purity_ploidy")
+purecn_puri_ploi = readRDS(file.path(results_dir, "data/luad_ABS_w_tumor_only.rds"))
+
+# 442 obs. which have matched normal samples
+# paired = readRDS(file.path(results_dir, "data/luad_ABS_w_matching_normal.rds"))
+# write.csv(paired$fullname, "~/Documents/github/PureCN_manuscript/luad/Results/duplication/luad_442.csv")
+luad_442 = read.csv("~/Documents/github/PureCN_manuscript/luad/Results/duplication/luad_442.csv")[,2]  
+
+purecn_puri_ploi = purecn_puri_ploi[which(purecn_puri_ploi$fullname %in% luad_442),]
+```
+
+## Purity and Ploidy Comparisons
+These are Figure 1C and 1D in the manuscript.
+```{r echo=FALSE}
+# Purity
+df = purecn_puri_ploi
+x = "Purity_ABS"
+y = "Purity_tumor_only"
+plot_for = "purity"
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "C. TCGA-LUAD Purity") 
+source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
+tumor_puri = final_plot
+rm(final_plot)
+
+# Ploidy
+df = purecn_puri_ploi
+x = "Ploidy_ABS"
+y = "Ploidy_tumor_only"
+plot_for = "ploidy"
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "D. TCGA-LUAD Ploidy") 
+source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
+tumor_ploi = final_plot
+rm(final_plot)
+```
+
+```{r echo=FALSE, fig.width = 7, fig.height = 4.5}
+tumor_puri | tumor_ploi
+```
+
+# Purity outliers
+```{r from_Ludwig, echo=FALSE, eval=FALSE}
+absdiff <- abs(x - y)
+ind <- order(absdiff)
+fract <- 0.8
+length.out <- round(fract * length(absdiff))
+fract.grid <- ind[seq_len(length.out)]
+plot(x[fract.grid], y[fract.grid])
+```
+
+Top 80% of purity-concordant samples are marked in red and the others are colored in cyan.
+If I calculate Pearson correlation only with the concordant samples, it give 0.98.
+
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+df = purecn_puri_ploi
+x = df$Purity_ABS
+y = df$Purity_tumor_only
+
+absdiff <- abs(x - y)
+ind <- order(absdiff)
+fract <- 0.8
+length.out <- round(fract * length(absdiff))
+fract.grid <- ind[seq_len(length.out)]
+# plot(x[fract.grid], y[fract.grid])
+
+df$absdiff = "discordant"
+df$absdiff[fract.grid] = "concordant"
+df_puri = df
+
+x = "Purity_ABS"
+y = "Purity_tumor_only"
+plot_for = "purity"
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "C. TCGA-LUAD Purity")
+
+source("~/data2/PureCN_manuscript/Revision/revision_figure.R")
+tumor_puri = final_plot
+rm(final_plot)
+
+tumor_puri
+```
+
+## Ploidy of purity outliers
+**[Left]** Ploidy of PureCN and ABSOLUTE results from 20% of purity-discordant
+samples (the cyan dots from the above plot) are plotted. Pearson correltation 
+coefficient is 0.19.     
+**[Right]** Ploidy of PureCN and ABSOLUTE results from the purity-concordant 
+samples. Pearson correltation coefficient is 0.65.     
+
+*--> So a wrong purity estimates lead to a wrong ploidy estimates?*
+
+```{r echo=FALSE, fig.width = 7, fig.height = 4.5}
+df = df[which(df$absdiff == "discordant"),]
+x = "Ploidy_ABS"
+y = "Ploidy_tumor_only"
+plot_for = "ploidy"
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "TCGA-LUAD Ploidy \n of discordant Purity")
+
+source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
+discordant_ploi = final_plot
+rm(final_plot)
+
+
+df = df_puri
+df = df[which(df$absdiff == "concordant"),]
+x = "Ploidy_ABS"
+y = "Ploidy_tumor_only"
+plot_for = "ploidy"
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "TCGA-LUAD Ploidy \n of cordant Purity")
+
+source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
+concordant_ploi = final_plot
+rm(final_plot)
+
+
+discordant_ploi | concordant_ploi
+```
+
+
+
+
+
+
+
+
+# Ploidy outliers
+
+Top 80% of ploidy-concordant samples are marked in red and the others are colored in cyan.
+If I calculate Pearson correlation only with the concordant samples, it give 0.97.
+
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+df = purecn_puri_ploi
+x = df$Ploidy_ABS
+y = df$Ploidy_tumor_only
+
+absdiff <- abs(x - y)
+ind <- order(absdiff)
+fract <- 0.8
+length.out <- round(fract * length(absdiff))
+fract.grid <- ind[seq_len(length.out)]
+# plot(x[fract.grid], y[fract.grid])
+
+df$absdiff = "discordant"
+df$absdiff[fract.grid] = "concordant"
+df_ploi = df
+
+x = "Ploidy_ABS"
+y = "Ploidy_tumor_only"
+plot_for = "ploidy"
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "D. TCGA-LUAD Ploidy") 
+
+source("~/data2/PureCN_manuscript/Revision/revision_figure.R")
+tumor_ploid = final_plot
+rm(final_plot)
+
+tumor_ploid
+```
+
+
+
+## Purity of ploidy outliers
+
+**[Left]** Purity of PureCN and ABSOLUTE results from 20% of ploidy-discordant
+samples (the cyan dots from the above plot) are plotted. Pearson correltation 
+coefficient is 0.69.       
+**[Right]** Purity of PureCN and ABSOLUTE results from the ploidy-concordant 
+samples. Pearson correltation coefficient is 0.87.    
+
+```{r echo=FALSE, fig.width = 7, fig.height = 4.5}
+df = df[which(df$absdiff == "discordant"),]
+x = "Purity_ABS"
+y = "Purity_tumor_only"
+plot_for = "purity"
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "TCGA-LUAD Purity \n of discordant Ploidy")
+
+source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
+discordant_puri = final_plot
+rm(final_plot)
+
+df = df_ploi
+df = df[which(df$absdiff == "concordant"),]
+x = "Purity_ABS"
+y = "Purity_tumor_only"
+plot_for = "purity"
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "TCGA-LUAD Purity \n of cordant Ploidy")
+
+source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
+concordant_puri = final_plot
+rm(final_plot)
+
+discordant_puri | concordant_puri
+```
+
+
+
+
+
+# Extreme cases (2%)
+## Purity outliers
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+df = purecn_puri_ploi
+x = df$Purity_ABS
+y = df$Purity_tumor_only
+
+absdiff <- abs(x - y)
+ind <- order(absdiff, decreasing = TRUE)
+fract <- 0.02
+length.out <- round(fract * length(absdiff))
+fract.grid <- ind[seq_len(length.out)]
+
+df$absdiff = "concordant"
+df$absdiff[fract.grid] = "discordant"
+df_puri_outlier = df
+
+x = "Purity_ABS"
+y = "Purity_tumor_only"
+plot_for = "purity"
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "TCGA-LUAD Purity Outlier")
+
+source("~/data2/PureCN_manuscript/Revision/revision_figure.R")
+final_plot
+```
+
+```{r}
+puriOutlierInd = which(df_puri_outlier$absdiff == "discordant")
+df_puri_outlier[puriOutlierInd,]
+```
+
+
+
+
+## Ploidy outliers
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+df = purecn_puri_ploi
+x = df$Ploidy_ABS
+y = df$Ploidy_tumor_only
+
+absdiff <- abs(x - y)
+ind <- order(absdiff, decreasing = TRUE)
+fract <- 0.02
+length.out <- round(fract * length(absdiff))
+fract.grid <- ind[seq_len(length.out)]
+
+df$absdiff = "concordant"
+df$absdiff[fract.grid] = "discordant"
+df_ploi_outlier = df
+
+x = "Ploidy_ABS"
+y = "Ploidy_tumor_only"
+plot_for = "ploidy"
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "TCGA-LUAD Ploidy Outlier")
+
+source("~/data2/PureCN_manuscript/Revision/revision_figure.R")
+final_plot
+```
+
+```{r}
+ploiOutlierInd = which(df_ploi_outlier$absdiff == "discordant")
+df_ploi_outlier[ploiOutlierInd,]
+```
