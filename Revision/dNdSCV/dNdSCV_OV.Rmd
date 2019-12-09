@@ -1,0 +1,130 @@
+---
+title: "Untitled"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+GitHub page for dNdScr: https://github.com/im3sanger/dndscv
+
+```{r, echo=FALSE, results="hide", warning=FALSE}
+suppressPackageStartupMessages({
+    library(dndscv)
+    library(dplyr)
+})
+```
+
+# Extract SNV info from PureCN
+## output file list
+```{r}
+out_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
+
+data_dir = "/nobackup/16tb_b/CNVworkflow/931070/purecn_output/931070_PureCN"
+tumor_dir = file.path(data_dir, "tumor_only")
+
+# a list of SampleID, which has '_variants.csv' output
+sample_dir = list.files(tumor_dir)
+file_list = sapply(sample_dir, function(x) list.files(file.path(tumor_dir, x)))
+mut = sapply(file_list, function(x) x[grep("*_variants.csv$", x)])
+
+# subset the 442 samples used in the paper
+source("~/Documents/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
+sub_ind = which(stringr::str_extract(names(mut), "TCGA.{11}") %in% ovc_236)
+mut = mut[sub_ind]
+```
+
+## subset SNV info 
+```{r}
+snv_list = list()
+for (i in seq_along(mut)) {
+    snv_tumor = read.csv(file.path(tumor_dir, names(mut[i]), mut[[i]]))
+    snv_tumor_sub = snv_tumor[, c("Sampleid","chr","start","end","REF","ALT")]
+    snv_list[[names(mut[i])]] = snv_tumor_sub
+}
+```
+
+```{r echo=FALSE, eval=FALSE}
+# saveRDS(snv_list, file = file.path(out_dir, "ovc_931070_snv.rds"))
+
+snv_list = readRDS(file.path(out_dir, "ovc_931070_snv.rds"))
+```
+
+## Format mutation input
+```{r}
+names(snv_list) = stringr::str_extract(names(snv_list), "TCGA.{11}")
+
+for (i in seq_along(snv_list)) {
+    snv_list[[i]]$Sampleid = stringr::str_extract(snv_list[[i]]$Sampleid, "TCGA.{11}")
+    snv_list[[i]] = snv_list[[i]][c("Sampleid", "chr", "start", "REF", "ALT")]
+    colnames(snv_list[[i]]) = c("sampleID", "chr", "pos", "ref", "mut")
+    
+    # remove non-unique calls
+    dup = duplicated(snv_list[[i]]$pos)
+    snv_list[[i]] = snv_list[[i]][!dup,]
+}
+```
+
+# Build reference for dNdSCV
+```{r eval=FALSE}
+wd = "~/data2/PureCN_manuscript/Revision/dNdSCV"
+path_cds_table = file.path(wd, "mart_export.txt")
+path_genome_fasta = "~/reference/GRCh38_no_alt/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna"
+
+# Build GRCh38 reference
+buildref(cdsfile = path_cds_table, 
+         genomefile = path_genome_fasta, 
+         outfile = file.path(wd, "GRCh38_refcds.rda"), 
+         excludechrs = "MT")
+```
+
+# Run dNdSCV
+```{r}
+wd = "~/data2/PureCN_manuscript/Revision/dNdSCV"
+
+dndsout_tumor = list()
+for (i in seq_along(snv_list)) {
+    sample_name = names(snv_list)[i]
+    dndsout = dndscv(snv_list[[i]], 
+                     refdb = file.path(wd, "GRCh38_refcds.rda"),
+                     max_muts_per_gene_per_sample = 5,   # default is 3
+                     max_coding_muts_per_sample = 20000,   # default is 3000
+                     cv = NULL)
+    dndsout_tumor[[sample_name]] = dndsout
+}
+```
+
+
+
+
+
+
+
+
+```{r}
+# Using buildref
+path_cds_table = system.file("extdata", "BioMart_human_GRCh37_chr3_segment.txt", package = "dndscv", mustWork = TRUE)
+path_genome_fasta = system.file("extdata", "chr3_segment.fa", package = "dndscv", mustWork = TRUE)
+buildref(cdsfile=path_cds_table, genomefile=path_genome_fasta, outfile = "example_output_refcds.rda", excludechrs="MT")
+
+
+# Running dNdScv with a new RefCDS object
+segment = c(178.8e6,179.3e6) # The 500kb segment of the genome used to generate the new RefCDS
+data("dataset_simbreast", package="dndscv") # Example dataset
+mutations = mutations[mutations$chr=="3" & mutations$pos>segment[1] & mutations$pos<segment[2], ] # Restricting the mutations to those inside the segment
+mutations$pos = mutations$pos-segment[1]+1 # Correcting the position of the mutations to their position in the reference fasta file used
+dndsout = dndscv(mutations, refdb="example_output_refcds.rda", cv=NULL)
+print(dndsout$sel_cv) # This is shown as an example but these results based on a few genes should not be trusted
+```
+
+```{r}
+head(mutations)
+```
+
+```{r}
+print(dndsout$globaldnds)
+```
+
