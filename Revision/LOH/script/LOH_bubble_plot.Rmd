@@ -1,15 +1,15 @@
 ---
 title: "LOH bubble plot"
 author: "Sehyun Oh"
-date: "12/7/2019"
+date: "`r Sys.Date()`"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 ```
 
-```{r, echo=FALSE, results="hide", warning=FALSE}
+```{r, echo=FALSE, results="hide", warning=FALSE, eval=TRUE}
 suppressPackageStartupMessages({
     library(magrittr)
     library(GenomicRanges)
@@ -21,6 +21,7 @@ suppressPackageStartupMessages({
 ```{r}
 out_dir = "~/data2/PureCN_manuscript/Revision"
 loh_list = readRDS(file.path(out_dir, "luad_LOH_all.rds"))
+# loh_list = readRDS(file.path(out_dir, "luad_LOH_all_PSCBS.rds"))
 names(loh_list) = stringr::str_extract(names(loh_list), "TCGA.{11}")
 loh_list = lapply(loh_list, function(x) {x[!is.na(x$C) & !is.na(x$M),]})   # remove NA calls
 
@@ -78,7 +79,8 @@ loh_list_abs[1:2]
 ```
 
 ```{r echo=FALSE}
-saveRDS(loh_list_pcn, "~/data2/PureCN_manuscript/Revision/LOH/loh_list_pcn.rds")
+# saveRDS(loh_list_pcn, "~/data2/PureCN_manuscript/Revision/LOH/loh_list_pcn.rds")
+# saveRDS(loh_list_pcn, "~/data2/PureCN_manuscript/Revision/LOH/loh_list_pcn_PSCBS.rds")
 # saveRDS(loh_list_abs, "~/data2/PureCN_manuscript/Revision/LOH/loh_list_abs.rds")
 
 loh_list_pcn = readRDS("~/data2/PureCN_manuscript/Revision/LOH/loh_list_pcn.rds")
@@ -102,31 +104,21 @@ for (i in luad_sampleId) {
 }
 ```
 
-```{r echo=FALSE}
-saveRDS(loh_summary, "~/data2/PureCN_manuscript/Revision/LOH/loh_summary.rds")
+```{r echo=FALSE, eval=TRUE}
+# saveRDS(loh_summary, "~/data2/PureCN_manuscript/Revision/LOH/loh_summary.rds")
 
 loh_summary = readRDS("~/data2/PureCN_manuscript/Revision/LOH/loh_summary.rds")
 ```
 
-```{r}
+```{r eval=TRUE}
 test = data.frame()
 for (i in seq_along(loh_summary)) {test = rbind(test, loh_summary[[i]])}
-
-# loh.pcn_na = c("1.5-1","1.50432977574171-0","0.191336671662991-0",
-#                "0.0699034009267365-0","9.26034726026929-1")
-# loh.pcn_na_ind = which(test$loh.pcn %in% loh.pcn_na)
-# test = test[-loh.pcn_na_ind,]
-
-# test = test %>%
-#     dplyr::group_by(loh.abs) %>%
-#     dplyr::group_by(loh.pcn) %>%
-#     dplyr::summarise(., n())
 
 unique_abs = unique(test$loh.abs) %>% as.character() %>% sort
 unique_pcn = unique(test$loh.pcn) %>% as.character() %>% sort
 ```
 
-```{r}
+```{r eval=TRUE}
 t = as.data.frame(matrix(NA,
                          nrow=length(unique_abs),
                          ncol=length(unique_pcn)))
@@ -139,7 +131,7 @@ for (i in unique_abs) {
 }
 ```
 
-```{r}
+```{r eval=TRUE}
 t2 = as.data.frame(matrix(NA,
                          nrow=length(unique_abs)*length(unique_pcn),
                          ncol=3))
@@ -158,7 +150,7 @@ for (i in unique_abs) {
 t2 = t2[which(t2$loh.pcn %in% unique_abs),]
 ```
 
-```{r fig.width=5, fig.height=5}
+```{r fig.width=5, fig.height=5, eval=TRUE}
 ggplot(t2, aes(x = loh.abs, y = loh.pcn)) +   # 30,335 data points
     geom_point(aes(size = num), alpha = 0.5, show.legend = FALSE) +
     geom_text(aes(label = num), col = "white", size = 3) +

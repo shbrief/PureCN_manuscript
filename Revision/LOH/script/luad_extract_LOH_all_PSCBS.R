@@ -27,5 +27,5 @@ for (i in seq_along(mut)) {
 }
 
 # save a table of LOH outputs
-saveRDS(loh_list, file = file.path(out_dir, "luad_LOH_all.rds"))
+saveRDS(loh_list, file = file.path(out_dir, "luad_LOH_all_PSCBS.rds"))
 
