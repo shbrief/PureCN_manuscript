@@ -49,7 +49,7 @@ for (i in seq_along(mut)) {
 
 ```{r echo=FALSE, eval=FALSE}
 # saveRDS(snv_list, file = file.path(out_dir, "luad_snv.rds"))
-out_dir = "/data2/PureCN_manuscript/Revision/dNdSCV"
+out_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
 snv_list = readRDS(file.path(out_dir, "luad_snv.rds"))
 ```
 
@@ -87,7 +87,7 @@ buildref(cdsfile = path_cds_table,
 
 # Run dNdSCV
 ```{r}
-wd = "/data2/PureCN_manuscript/Revision/dNdSCV"
+wd = "~/data2/PureCN_manuscript/Revision/dNdSCV"
 
 dndsout_tumor = list()
 
