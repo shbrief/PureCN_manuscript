@@ -1,0 +1,34 @@
+### 'dndscv' returns a list of objects:
+- globaldnds: Global dN/dS estimates across all genes.
+- sel_cv: Gene-wise selection results using dNdScv.
+- sel_loc: Gene-wise selection results using dNdSloc.
+- annotmuts: Annotated coding mutations.
+- genemuts: Observed and expected numbers of mutations per gene.
+- mle_submodel: MLEs of the substitution model.
+- exclsamples: Samples excluded from the analysis.
+- exclmuts: Coding mutations excluded from the analysis.
+- nbreg: Negative binomial regression model for substitutions.
+- nbregind: Negative binomial regression model for indels.
+- poissmodel: Poisson regression model used to fit the substitution model and the global dNdS values.
+- wrongmuts: Table of input mutations with a wrong annotation of the reference base (if any).
+
+
+### sel_cv columns:
+- wmis : maximum-likelihood estimates (MLEs) of the dN/dS ratios for missense (wmis)
+- wnon : maximum-likelihood estimates (MLEs) of the dN/dS ratios for nonsense (wnon)
+- wspl : maximum-likelihood estimates (MLEs) of the dN/dS ratios for essential splice site mutations (wspl)
+- wind : maximum-likelihood estimates (MLEs) of the dN/dS ratios for indels (wind)
+-
+- qglobal_cv : global q-value integrating all mutation types with indels
+- qallsubs_cv : global q-value integrating all mutation types without indels
+
+
+### globaldnds columns:
+- wmis
+- wnon
+- wspl
+- wtru
+- wall
+- mle : maximum-likelihood estimates
+- cilow
+- cihigh
