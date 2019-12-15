@@ -64,13 +64,21 @@ source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/buildSNVtable.R")
 ```
 
 
-# Run dNdSCV
+# Format mutation table
 ## Load a list of SNV tables
 ```{r setup_2}
 snv_list = readRDS(file.path(wd, paste0("LUAD_mutTable_", runtype, ".rds")))
 names(snv_list) = stringr::str_extract(names(snv_list), "TCGA.{11}")
 ```
 
+## Format a list of SNV tables
+Main focus is merging MNPs.
+```{r eval=TRUE}
+source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/formatSNVTables.R")
+```
+
+
+# Run dNdSCV
 ```{r eval=TRUE}
 source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/rundNdSCV.R")
 ```

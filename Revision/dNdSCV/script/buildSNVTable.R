@@ -1,4 +1,6 @@
 # Extract SNV info from PureCN
+
+
 ##### PureCN output file list ##################################################
 # a list of SampleID, which has '_variants.csv' output
 sample_dir = list.files(data_dir)
@@ -9,6 +11,7 @@ mut = sapply(file_list, function(x) x[grep("*_variants.csv$", x)])
 source("~/Documents/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
 sub_ind = which(stringr::str_extract(names(mut), "TCGA.{11}") %in% luad_442)
 mut = mut[sub_ind]
+
 
 ##### SNV table in a dNdSCV input format #######################################
 snv_list = list()
