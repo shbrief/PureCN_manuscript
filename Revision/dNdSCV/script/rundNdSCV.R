@@ -1,17 +1,3 @@
-##### Check all the MNPs are merged properly ###################################
-res = lapply(snv_list, findMNPs)
-
-merge1 = sapply(snv_list, function(x) {nrow(x)})
-cfmerge2 = sapply(res, function(x) {nrow(x)})
-
-if (sum(merge1 != merge2) == 0) {
-    print("MNPs are merged properly. Good to go!")
-} else {
-    check_mnps = names(merge1)[merge1 != merge2]
-    print("Double check the samples in the list, called 'check_mnps'")    
-    stop
-}
-
 ##### Combine all mutations ####################################################
 mut_all = as.data.frame(matrix(NA, ncol = 5))
 colnames(mut_all) = colnames(snv_list[[1]])

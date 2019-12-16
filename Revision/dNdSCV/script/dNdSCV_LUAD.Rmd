@@ -60,7 +60,7 @@ mutation tables (`snv_list`).
 out_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
 data_dir = file.path("/nobackup/16tb_a/CNVworkflow_LUAD/purecn_output/PureCN", runtype)
 
-source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/buildSNVtable.R")
+source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/buildSNVTable.R")
 ```
 
 
@@ -72,15 +72,25 @@ names(snv_list) = stringr::str_extract(names(snv_list), "TCGA.{11}")
 ```
 
 ## Format a list of SNV tables
-Main focus is merging MNPs.
+* Input: `snv_list`, which is a SNPs/MNPs table before formatting      
+* Output: `res`, which is a properly formatted SNPs/MNPs table
+
 ```{r eval=TRUE}
-source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/formatSNVTables.R")
+source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/formatSNVTable.R")
+snv_list = res   # assign 
 ```
 
 
 # Run dNdSCV
+* Input: `snv_list`, which is the properly formatted SNPs/MNPs table   
+* Output: `dndsout`, which is an output from `dndscv::dndscv` function
+
 ```{r eval=TRUE}
 source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/rundNdSCV.R")
+```
+
+```{r echo=FALSE, eval=FALSE}
+saveRDS(dndsout, file = file.path(dnds_out_dir, paste0("dndsout_LUAD_", runtype, ".rds")))
 ```
 
 
@@ -91,42 +101,18 @@ same sample. These were designed to protect against loss of sensitivity from
 ultra-hypermutators and from clustered artefacts in the input mutation table, but 
 there are occasions when the user will prefer to relax these.   
 
-```{r}
-# sample failed to be processed by dNdSCV with default filtering
-dndsout_all = list.files(dnds_out_dir)
-missing_ind = which(!names(snv_list) %in% gsub(".rds", "", dndsout_all))
-```
-
-From `r runtype` PureCN analysis, `r length(missing_ind)` samples were excluded 
-for exceeding the limit of mutations per sample (see the max_coding_muts_per_sample argument in dndscv).
-
-
 
 
 # EDA on dNdSCV outputs
-## Load `sel_cv` objects
 `sel_cv` is gene-wise selection results using dNdScv.
 
-```{r eval=FALSE}
-i = 2
-runtype = c("tumor_only", "matching_normal")[i]
-
-sel_cv_fname = list.files(file.path(dnds_out_dir, "sel_cv"))
-sel_cv_path = file.path(dnds_out_dir, "sel_cv", sel_cv_fname)
-
-sel_cv_all = lapply(sel_cv_path, function(x) {
-    y = read.csv(x)
-    y = data.frame(y[-1], row.names = y[,1])
-    assign(x, y)
-})
-
-saveRDS(sel_cv_all, file = file.path(out_dir, paste0("LUAD_sel_cv_", runtype, ".rds")))
-```
-
 ```{r}
+sel_cv = dndsout$sel_cv
 signif_genes = sel_cv[sel_cv$qglobal_cv < 0.1, c("gene_name", "qglobal_cv")]
 rownames(signif_genes) = NULL
+
 print(signif_genes)
+write.csv(signif_genes, file = file.path(dnds_out_dir, paste0("signif_genes_LUAD_", runtype, ".csv")))
 ```
 
 
