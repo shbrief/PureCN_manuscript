@@ -15,6 +15,10 @@ for (i in seq_along(snv_list)) {
     snv_list[[i]] = snv_list[[i]][c("Sampleid", "chr", "start", "REF", "ALT")]
     colnames(snv_list[[i]]) = c("sampleID", "chr", "pos", "ref", "mut")
     
+    # ref and mut as 'character' for paste
+    snv_list[[i]]$ref = as.character(snv_list[[i]]$ref)
+    snv_list[[i]]$mut = as.character(snv_list[[i]]$mut)
+    
     # remove non-unique calls
     dup = duplicated(snv_list[[i]]$pos)
     snv_list[[i]] = snv_list[[i]][!dup,]
@@ -25,7 +29,7 @@ for (i in seq_along(snv_list)) {
 findMNPs = function(x) {
     # `mnps` object will collect the index of the second nucleotide(s) of MNPs (m = 2)
     mnps = c()
-    
+
     # merge any two, consecutive nucleotides changes
     for (i in 2:nrow(x)) {
         if ((x$pos[i] - x$pos[i-1]) == 1) {  
@@ -35,11 +39,26 @@ findMNPs = function(x) {
         }
     }
     
-    # remove the second nucleotide(s) of MNPs (m = 2)
-    if (!is.null(mnps)) {
+    # if MNPs are longer than 2 nucleotides
+    if (is.null(mnps)) {   
+        # in case there is no MNPs
+        x = x
+        
+    } else if (1 %in% diff(mnps)) {
+        # in case there are MNPs longer than 2 nucleotides
+        mnps_ind = which(diff(mnps) == 1)
+        mnps_row = which(x$pos == mnps[mnps_ind])
+        sampleName = unique(x$sampleID)
+
+        print(paste("Double check the row", mnps_row,
+                    "of sample", unique(x$sampleID),
+                    ". Summary is listed in the second element of the output."))
+        
+    } else {
+        # in case there are only MNPs with 2 nucleotides
         x = x[-which(x$pos %in% mnps),]
-    } else {x = x}
-    
+    }
+
     return(x)
 }
 
@@ -51,17 +70,17 @@ res = lapply(snv_list, findMNPs)
 # snv_list[[1]]$pos[sort(c(merged_ind-1, merged_ind))]
 
 
-##### Longer MNPs (m != 2 cases) ###############################################
-res2 = lapply(res, findMNPs)
-
-merge1 = sapply(res, function(x) {nrow(x)})
-merge2 = sapply(res2, function(x) {nrow(x)})
-
-# If the second application of the function,`findMNPs`, merges rows again, there 
-# is likely a MNP(s) longer than dinucleotides. Please manually check them. 
-if (sum(merge1 != merge2) != 0) {
-    longer_mnps = names(merge1)[merge1 != merge2]
-    print("Double check the samples in the list, called 'longer_mnps'")
-}
-
-rm(merge1, merge2, res, res2)
+# ##### Longer MNPs (m != 2 cases) ###############################################
+# res2 = lapply(res, findMNPs)
+# 
+# merge1 = sapply(res, function(x) {nrow(x)})
+# merge2 = sapply(res2, function(x) {nrow(x)})
+# 
+# # If the second application of the function,`findMNPs`, merges rows again, there 
+# # is likely a MNP(s) longer than dinucleotides. Please manually check them. 
+# if (sum(merge1 != merge2) != 0) {
+#     longer_mnps = names(merge1)[merge1 != merge2]
+#     print("Double check the samples in the list, called 'longer_mnps'")
+# }
+# 
+# rm(merge1, merge2, res, res2)
