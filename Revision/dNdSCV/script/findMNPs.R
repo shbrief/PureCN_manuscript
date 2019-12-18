@@ -1,4 +1,5 @@
 findMNPs = function(x) {
+
     # `mnps` is the index of merged nucleotides
     mnps = c()
     

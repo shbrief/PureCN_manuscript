@@ -1,5 +1,6 @@
 # Extract SNV info from PureCN
-
+# - input: `i` (= runtype), `out_dir`, `data_dir`   
+# - output: `snv_list` 
 
 ##### PureCN output file list ##################################################
 # a list of SampleID, which has '_variants.csv' output
@@ -16,8 +17,21 @@ mut = mut[sub_ind]
 ##### SNV table in a dNdSCV input format #######################################
 snv_list = list()
 for (i in seq_along(mut)) {
-    snv_table = read.csv(file.path(data_dir, names(mut[i]), mut[[i]]))
-    snv_table_sub = snv_table[, c("Sampleid","chr","start","end","REF","ALT", "ML.SOMATIC")]
+    # p <- predictSomatic output
+    p = read.csv(file.path(data_dir, names(mut[i]), mut[[i]]))
+    
+    # remove variants in germline databases
+    min.prior.somatic = 0.1 
+    max.prior.somatic = 1
+    p = p[p$prior.somatic >= min.prior.somatic & 
+              p$prior.somatic <= max.prior.somatic,]
+    # keep only somatic in targeted regions  
+    p = p[p$ML.SOMATIC & p$on.target == 1, ]
+    # remove flagged         
+    p = p[!p$FLAGGED,]
+    
+    ##### subset only the columns required for dNdSCV
+    snv_table_sub = p[, c("Sampleid","chr","start","end","REF","ALT")]
     snv_list[[names(mut[i])]] = snv_table_sub
 }
 

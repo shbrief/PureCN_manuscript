@@ -23,7 +23,7 @@ Outputs are in two directories: `tumor_only` (`i=1`) and `matching_normal` (`i=2
 
 ```{r setup_1}
 # Select runtype
-i = 1
+i = 2
 
 runtype = c("tumor_only", "matching_normal")[i]
 wd = "~/data2/PureCN_manuscript/Revision/dNdSCV"
@@ -56,7 +56,7 @@ mutation tables (`snv_list`).
 - input: `i`, `out_dir`, `data_dir`   
 - output: `snv_list`   
 
-```{r eval=FALSE}
+```{r buildSNVTable, eval=FALSE}
 out_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
 data_dir = file.path("/nobackup/16tb_a/CNVworkflow_LUAD/purecn_output/PureCN", runtype)
 
@@ -73,10 +73,16 @@ names(snv_list) = stringr::str_extract(names(snv_list), "TCGA.{11}")
 
 ## Format a list of SNV tables
 * Input: `snv_list`, which is a SNPs/MNPs table before formatting      
-* Output: `res`, which is a properly formatted SNPs/MNPs table
+* Output: `res`, which is a properly formatted SNPs/MNPs table, and potentially 
+`mannual_snv_check`, which contains the samples with fewer than 3 SNVs. You need 
+to check it manually (there will be a message in this case) and add back to the `res`.
 
 ```{r eval=TRUE}
 source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/formatSNVTable.R")
+```
+
+```{r eval=TRUE}
+snv_list = c(snv_list, mannual_snv_check)
 snv_list = res   # assign 
 ```
 
@@ -116,7 +122,44 @@ write.csv(signif_genes, file = file.path(dnds_out_dir, paste0("signif_genes_LUAD
 ```
 
 
+```{r}
+signif_dir = "/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/LUAD"
+t = read.csv(file.path(signif_dir, "tumor_only/signif_genes_LUAD_tumor_only.csv"))[,-1]
+m = read.csv(file.path(signif_dir, "matching_normal/signif_genes_LUAD_matching_normal.csv"))[,-1]
 
+colnames(t)[2] = "qglobal_cv_tumorOnly"
+colnames(m)[2] = "qglobal_cv_matchingN"
+
+all = merge(m, t, by = "gene_name")
+```
+
+```{r plot_signif_genes, fig.height=4.5, fig.width=4.5}
+plot(x = all$qglobal_cv_matchingN, 
+     y = all$qglobal_cv_tumorOnly,
+     main = "Compare significant genes",
+     xlab = "With matching-normal",
+     ylab = "Tumor-only")
+abline(0, 1, col = "red")
+# with(all, text(all$qglobal_cv_matchingN ~ all$qglobal_cv_tumorOnly, 
+#                labels = all$gene_name, 
+#                cex = 0.7)
+#      )
+```
+
+```{r fig.width=4.5, fig.height=4.5}
+library(VennDiagram)
+
+grid.newpage()
+draw.pairwise.venn(area1 = nrow(m),
+                   area2 = nrow(t),
+                   cross.area = nrow(all),
+                   category = c("matching_normal", "tumor_only"),
+                   lty = rep("blank", 2), 
+                   fill = c("light blue", "pink"), 
+                   alpha = rep(0.5, 2), 
+                   cat.pos = c(0, 0), 
+                   cat.dist = rep(0.025, 2))
+```
 
 
 
