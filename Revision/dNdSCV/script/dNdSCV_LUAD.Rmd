@@ -10,6 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 GitHub page for dNdScr: https://github.com/im3sanger/dndscv
+dNdScr vignette: http://htmlpreview.github.io/?http://github.com/im3sanger/dndscv/blob/master/vignettes/dNdScv.html
 
 ```{r echo=FALSE, results="hide", warning=FALSE}
 suppressPackageStartupMessages({
@@ -23,7 +24,7 @@ Outputs are in two directories: `tumor_only` (`i=1`) and `matching_normal` (`i=2
 
 ```{r setup_1}
 # Select runtype
-i = 2
+i = 1
 
 runtype = c("tumor_only", "matching_normal")[i]
 wd = "~/data2/PureCN_manuscript/Revision/dNdSCV"
@@ -133,19 +134,6 @@ colnames(m)[2] = "qglobal_cv_matchingN"
 all = merge(m, t, by = "gene_name")
 ```
 
-```{r plot_signif_genes, fig.height=4.5, fig.width=4.5}
-plot(x = all$qglobal_cv_matchingN, 
-     y = all$qglobal_cv_tumorOnly,
-     main = "Compare significant genes",
-     xlab = "With matching-normal",
-     ylab = "Tumor-only")
-abline(0, 1, col = "red")
-# with(all, text(all$qglobal_cv_matchingN ~ all$qglobal_cv_tumorOnly, 
-#                labels = all$gene_name, 
-#                cex = 0.7)
-#      )
-```
-
 ```{r fig.width=4.5, fig.height=4.5}
 library(VennDiagram)
 
@@ -160,6 +148,22 @@ draw.pairwise.venn(area1 = nrow(m),
                    cat.pos = c(0, 0), 
                    cat.dist = rep(0.025, 2))
 ```
+
+```{r plot_signif_genes, fig.height=4.5, fig.width=4.5}
+plot(x = -log(all$qglobal_cv_matchingN), 
+     y = -log(all$qglobal_cv_tumorOnly),
+     main = "Significant genes (-log(q-value))",
+     xlab = "With matching-normal",
+     ylab = "Tumor-only",
+     xlim = c(0,16), ylim = c(0,16))
+abline(0, 1, col = "red")
+# with(all, text(all$qglobal_cv_matchingN ~ all$qglobal_cv_tumorOnly, 
+#                labels = all$gene_name, 
+#                cex = 0.7)
+#      )
+```
+
+
 
 
 

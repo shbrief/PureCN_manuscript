@@ -1,15 +1,15 @@
 ---
 title: "LOH bubble plot for FACETS"
 author: "Sehyun Oh"
-date: "12/7/2019"
+date: "`r Sys.Date()`"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, eval=FALSE)
 ```
 
-```{r, echo=FALSE, results="hide", warning=FALSE}
+```{r, echo=FALSE, results="hide", warning=FALSE, eval=TRUE}
 suppressPackageStartupMessages({
     library(magrittr)
     library(GenomicRanges)
@@ -17,7 +17,7 @@ suppressPackageStartupMessages({
 })
 ```
 
-```{r}
+```{r eval=TRUE}
 out_dir = "~/Documents/github/FACETS/LUAD/facets"
 facets_files = list.files(out_dir)
 facets_files = file.path(out_dir, facets_files)
@@ -117,7 +117,7 @@ for (i in luad_sampleId) {
 }
 ```
 
-```{r echo=FALSE}
+```{r echo=FALSE, eval=TRUE}
 # saveRDS(loh_summary, "~/data2/PureCN_manuscript/Revision/LOH/loh_summary_facets.rds")
 loh_summary = readRDS("~/data2/PureCN_manuscript/Revision/LOH/loh_summary_facets.rds")
 ```
@@ -126,7 +126,7 @@ loh_summary = readRDS("~/data2/PureCN_manuscript/Revision/LOH/loh_summary_facets
 
 
 
-```{r}
+```{r eval=TRUE}
 test = data.frame()
 for (i in seq_along(loh_summary)) {test = rbind(test, loh_summary[[i]])}
 
@@ -134,7 +134,7 @@ unique_abs = unique(test$loh.abs) %>% as.character() %>% sort
 unique_facets = unique(test$loh.facets) %>% as.character() %>% sort
 ```
 
-```{r}
+```{r eval=TRUE}
 t = as.data.frame(matrix(NA,
                          nrow=length(unique_abs),
                          ncol=length(unique_facets)))
@@ -147,7 +147,7 @@ for (i in unique_abs) {
 }
 ```
 
-```{r}
+```{r eval=TRUE}
 t2 = as.data.frame(matrix(NA,
                          nrow=length(unique_abs)*length(unique_facets),
                          ncol=3))
@@ -166,12 +166,14 @@ for (i in unique_abs) {
 t2_facets = t2[which(t2$loh.facets %in% unique_abs),]
 ```
 
-```{r fig.width=5, fig.height=5}
+```{r eval=TRUE, fig.width=5, fig.height=5}
 ggplot(t2_facets, aes(x = loh.abs, y = loh.facets)) +    # 231 data points
     geom_point(aes(size = num), alpha = 0.5, show.legend = FALSE) +
     geom_text(aes(label = num), col = "white", size = 3) +
     # scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
-    scale_size(range = c(0.2, 8))
+    scale_size(range = c(0.5, 25)) +
+    ggtitle("D. TCGA-LUAD: LOH (from FACETS)") +
+    xlab("SNP6 array (ABSOLUTE)") + ylab("Tumor/Normal (FACETS)")
 ```
 
 
