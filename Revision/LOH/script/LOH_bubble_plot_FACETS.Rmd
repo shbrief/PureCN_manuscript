@@ -17,10 +17,19 @@ suppressPackageStartupMessages({
 })
 ```
 
-```{r eval=TRUE}
+```{r LUAD}
 out_dir = "~/Documents/github/FACETS/LUAD/facets"
 facets_files = list.files(out_dir)
 facets_files = file.path(out_dir, facets_files)
+```
+
+```{r OVC}
+out_dir = "~/Documents/github/FACETS/OVC/facets"
+facets_files = list.files(out_dir)
+facets_files = lapply(facets_files, function(x) {
+    fname = list.files(file.path(out_dir, x))
+    file.path(out_dir, x, fname)
+    }) %>% unlist()
 ```
 
 ```{r}
@@ -97,8 +106,15 @@ loh_list_abs[1:2]
 ```
 
 ```{r eval=FALSE, echo=FALSE}
-saveRDS(loh_list_facets, "~/data2/PureCN_manuscript/Revision/LOH/loh_list_facets.rds")
+# saveRDS(loh_list_facets, "~/data2/PureCN_manuscript/Revision/LOH/data/LOH_list_LUAD_FACETS.rds")
+saveRDS(loh_list_facets, "~/data2/PureCN_manuscript/Revision/LOH/data/LOH_list_OVC_FACETS.rds")
 ```
+
+```{r eval=TRUE}
+loh_list_facets = readRDS("~/data2/PureCN_manuscript/Revision/LOH/data/LOH_list_LUAD_FACETS.rds")
+loh_list_abs = readRDS("~/data2/PureCN_manuscript/Revision/LOH/data/LOH_list_LUAD_abs.rds")
+```
+
 
 ```{r}
 loh_summary = list()
@@ -117,14 +133,12 @@ for (i in luad_sampleId) {
 }
 ```
 
-```{r echo=FALSE, eval=TRUE}
-# saveRDS(loh_summary, "~/data2/PureCN_manuscript/Revision/LOH/loh_summary_facets.rds")
-loh_summary = readRDS("~/data2/PureCN_manuscript/Revision/LOH/loh_summary_facets.rds")
+
+# LUAD FACETS
+```{r luad_facets_summary, echo=FALSE, eval=TRUE}
+# saveRDS(loh_summary, "~/data2/PureCN_manuscript/Revision/LOH/data/LOH_summary_FACETS_LUAD.rds")
+loh_summary = readRDS("~/data2/PureCN_manuscript/Revision/LOH/data/LOH_summary_FACETS_LUAD.rds")
 ```
-
-
-
-
 
 ```{r eval=TRUE}
 test = data.frame()
@@ -173,6 +187,64 @@ ggplot(t2_facets, aes(x = loh.abs, y = loh.facets)) +    # 231 data points
     # scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
     scale_size(range = c(0.5, 25)) +
     ggtitle("D. TCGA-LUAD: LOH (from FACETS)") +
+    xlab("SNP6 array (ABSOLUTE)") + ylab("Tumor/Normal (FACETS)")
+```
+
+
+
+# OVC FACETS
+```{r ovc_facets_summary, echo=FALSE, eval=TRUE}
+# saveRDS(loh_summary, "~/data2/PureCN_manuscript/Revision/LOH/data/LOH_summary_FACETS_OVC.rds")
+loh_summary = readRDS("~/data2/PureCN_manuscript/Revision/LOH/data/LOH_summary_FACETS_OVC.rds")
+```
+
+```{r eval=TRUE}
+test = data.frame()
+for (i in seq_along(loh_summary)) {test = rbind(test, loh_summary[[i]])}
+
+unique_abs = unique(test$loh.abs) %>% as.character() %>% sort
+unique_facets = unique(test$loh.facets) %>% as.character() %>% sort
+```
+
+```{r eval=TRUE}
+t = as.data.frame(matrix(NA,
+                         nrow=length(unique_abs),
+                         ncol=length(unique_facets)))
+rownames(t) = unique_abs
+colnames(t) = unique_facets
+for (i in unique_abs) {
+    for (j in unique_facets) {
+        t[i,j] = sum(test$loh.abs == i & test$loh.facets == j)
+    }
+}
+```
+
+```{r eval=TRUE}
+t2 = as.data.frame(matrix(NA,
+                         nrow=length(unique_abs)*length(unique_facets),
+                         ncol=3))
+colnames(t2) = c("loh.abs", "loh.facets", "num")
+t2$loh.abs = rep(unique_abs, each = length(unique_facets))
+t2$loh.facets = rep(unique_facets, length(unique_abs))
+
+for (i in unique_abs) {
+    for (j in unique_facets) {
+        ind = which(t2$loh.abs == i & t2$loh.facets == j)
+        t2$num[ind] = t[i,j]
+    }
+}
+
+# subset the table only with the LOH combination detected in ABSOLUTE
+t2_facets = t2[which(t2$loh.facets %in% unique_abs),]
+```
+
+```{r eval=TRUE, fig.width=5, fig.height=5}
+ggplot(t2_facets, aes(x = loh.abs, y = loh.facets)) +    # 231 data points
+    geom_point(aes(size = num), alpha = 0.5, show.legend = FALSE) +
+    geom_text(aes(label = num), col = "white", size = 3) +
+    # scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
+    scale_size(range = c(0.5, 25)) +
+    ggtitle("C. TCGA-OVC: LOH (from FACETS)") +
     xlab("SNP6 array (ABSOLUTE)") + ylab("Tumor/Normal (FACETS)")
 ```
 

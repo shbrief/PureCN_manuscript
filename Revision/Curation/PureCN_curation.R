@@ -36,3 +36,20 @@ path_to_dir = ov_S0293689_dir
 sampleid = gsub(".bam$", "", mani_ov[which(mani_ov$target_capture_kit_catalog_number == "S0293689"),]$filename)
 write.csv(do.call(rbind, lapply(file.path(path_to_dir, sampleid, paste0(sampleid,".csv")), 
                                 read.csv, as.is=TRUE)), file = "ov_S0293689.csv")
+
+
+##### Subset discordant samples ################################################
+# List of "low purity or of high heterogeneity" samples, defined as purify difference
+# more than 0.2 and ploidy difference more than 0.5
+luad = read.table("Revision/Curation/luad.csv", sep = ",", header = TRUE)[,-1] # 442 LUAD
+puri_ploi = read.csv(file.path(home_dir, "Figures/Final_Tables/Table1_puri_ploi.csv"))[,-1] # 675 samples = 233 OV + 442 LUAD
+puri_ploi = puri_ploi[which(puri_ploi$Sample == "LUAD"),]
+
+ploi_diff = abs(puri_ploi$Ploidy_ABS - puri_ploi$Ploidy_PCN_t)
+puri_diff = abs(puri_ploi$Purity_ABS - puri_ploi$Purity_PCN_t)
+discordant_ind = which(ploi_diff > 0.5 | puri_diff > 0.2)   # 116 discordant LUAD samples
+
+discordant_sampleId = puri_ploi$SampleId[discordant_ind] # select the SampleId of discordant samples
+luad$Sampleid = stringr::str_extract(luad$Sampleid, "TCGA.{11}") %>% gsub("\\.", "-",.)  # change SampleId format
+luad_discordant = luad[which(luad$Sampleid %in% discordant_sampleId),]
+write.csv(luad_discordant, "~/data2/PureCN_manuscript/Revision/Curation/luad_discordant.csv")

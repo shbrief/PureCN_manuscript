@@ -6,12 +6,12 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, eval=FALSE)
 ```
 
 GitHub page for dNdScr: https://github.com/im3sanger/dndscv
 
-```{r, echo=FALSE, results="hide", warning=FALSE}
+```{r, echo=FALSE, results="hide", warning=FALSE, eval=TRUE}
 suppressPackageStartupMessages({
     library(dndscv)
     library(dplyr)
@@ -19,10 +19,10 @@ suppressPackageStartupMessages({
 ```
 
 # Extract SNV info from PureCN
-## output file list
+## 931070
+### output file list
 ```{r}
 out_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
-
 data_dir = "/nobackup/16tb_b/CNVworkflow/931070/purecn_output/931070_PureCN"
 tumor_dir = file.path(data_dir, "tumor_only")
 
@@ -37,24 +37,90 @@ sub_ind = which(stringr::str_extract(names(mut), "TCGA.{11}") %in% ovc_236)
 mut = mut[sub_ind]
 ```
 
-## subset SNV info 
+### subset SNV info 
 ```{r}
 snv_list = list()
 for (i in seq_along(mut)) {
-    snv_tumor = read.csv(file.path(tumor_dir, names(mut[i]), mut[[i]]))
-    snv_tumor_sub = snv_tumor[, c("Sampleid","chr","start","end","REF","ALT")]
-    snv_list[[names(mut[i])]] = snv_tumor_sub
+    if (mut[i] != "character(0)") {
+        snv_tumor = read.csv(file.path(tumor_dir, names(mut[i]), mut[[i]]))
+        snv_tumor_sub = snv_tumor[, c("Sampleid","chr","start","end","REF","ALT")]
+        snv_list[[names(mut[i])]] = snv_tumor_sub
+    } else {
+        next
+    }
 }
 ```
 
 ```{r echo=FALSE, eval=FALSE}
-# saveRDS(snv_list, file = file.path(out_dir, "ovc_931070_snv.rds"))
-
-snv_list = readRDS(file.path(out_dir, "ovc_931070_snv.rds"))
+saveRDS(snv_list, file = file.path(out_dir, "OVC_931070_snv.rds"))
 ```
 
+## S0293689
+```{r echo=FALSE}
+out_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
+data_dir = "/nobackup/16tb_b/CNVworkflow/S0293689/purecn_output/S0293689_PureCN"
+tumor_dir = file.path(data_dir, "tumor_only")
+
+# a list of SampleID, which has '_variants.csv' output
+sample_dir = list.files(tumor_dir)
+file_list = sapply(sample_dir, function(x) list.files(file.path(tumor_dir, x)))
+mut = sapply(file_list, function(x) x[grep("*_variants.csv$", x)])
+
+# match filenames with sample names
+mani = read.table("~/data2/PureCN_manuscript/Data/manifest/ovc_manifest.tsv")
+x = as.data.frame(matrix(NA, nrow = length(mut), ncol=3))
+colnames(x) = c("file_name", "barcode", "sample_name")
+x$file_name = mut
+for (i in 1:nrow(x)) {
+    y = gsub("_variants.csv", ".bam", x$file_name[i])
+    if (!identical(y, "character(0)")) {
+        z = mani$barcode[which(mani$filename == y)]
+        x$barcode[i] = as.character(z)
+        x$sample_name[i] = stringr::str_extract(x$barcode[i], "TCGA.{11}")
+    } else {
+        next
+    }
+}
+
+# subset the 236 samples used in the paper
+source("~/Documents/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
+ovc_236_ind = which(x$sample_name %in% ovc_236)
+mut = x$file_name[ovc_236_ind]
+
+# subset SNV info 
+snv_list = list()
+for (i in seq_along(mut)) {
+    if (mut[i] != "character(0)") {
+        snv_tumor = read.csv(file.path(tumor_dir, names(mut[i]), mut[[i]]))
+        snv_tumor_sub = snv_tumor[, c("Sampleid","chr","start","end","REF","ALT")]
+        snv_list[[names(mut[i])]] = snv_tumor_sub
+    } else {
+        next
+    }
+}
+
+for (i in seq_along(snv_list)) {
+    ind = which(x$file_name == paste0(names(snv_list)[i], "_variants.csv"))
+    sampleId = x$sample_name[ind]
+    names(snv_list)[i] = sampleId
+    snv_list[[i]]$Sampleid = sampleId
+}
+
+saveRDS(snv_list, file = file.path(out_dir, "OVC_S0293689_snv.rds"))
+```
+
+```{r echo=FALSE, eval=TRUE}
+out_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
+snv_list_931070 = readRDS(file.path(out_dir, "OVC_931070_snv.rds"))
+snv_list_S0293689 = readRDS(file.path(out_dir, "OVC_S0293689_snv.rds"))
+snv_list = c(snv_list_931070, snv_list_S0293689)
+```
+
+
+
+
 ## Format mutation input
-```{r}
+```{r eval=TRUE}
 names(snv_list) = stringr::str_extract(names(snv_list), "TCGA.{11}")
 
 for (i in seq_along(snv_list)) {
@@ -82,7 +148,7 @@ buildref(cdsfile = path_cds_table,
 ```
 
 # Run dNdSCV
-```{r}
+```{r eval=TRUE}
 wd = "~/data2/PureCN_manuscript/Revision/dNdSCV"
 
 dndsout_tumor = list()
