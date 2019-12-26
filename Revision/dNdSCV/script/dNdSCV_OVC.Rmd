@@ -1,0 +1,235 @@
+---
+title: "Untitled"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval=FALSE)
+```
+
+GitHub page for dNdScr: https://github.com/im3sanger/dndscv
+
+```{r, echo=FALSE, results="hide", warning=FALSE, eval=TRUE}
+suppressPackageStartupMessages({
+    library(dndscv)
+    library(dplyr)
+})
+```
+
+
+# Set-up environment
+Outputs are in two directories: `tumor_only` (`i=1`) and `matching_normal` (`i=2`)
+
+```{r setup_1}
+# Select runtype
+i = 1
+
+runtype = c("tumor_only", "matching_normal")[i]
+wd = "~/data2/PureCN_manuscript/Revision/dNdSCV"
+dnds_out_dir = file.path("/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/OVC", runtype)
+out_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
+```
+
+# Build a reference for dNdSCV
+```{r eval=FALSE}
+source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/buildReference.R")
+```
+
+# Prepare SNV mutations table from PureCN
+`buildSNVtable.R` script requires a runtype (`i`), output directory (`out_dir`).
+Ouput from this script is a list of SNV mutation tables (`snv_list`). 
+
+- input: `i`, `out_dir`  
+- output: `snv_list`   
+
+```{r buildSNVTable, eval=FALSE}
+source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/buildSNVTable_OVC.R")
+```
+
+
+# Format mutation table
+## Load a list of SNV tables
+```{r setup_2}
+snv_list_931070 = readRDS(file.path(out_dir, "data", paste0("OVC_931070_mutTable_", runtype, ".rds")))
+snv_list_S0293689 = readRDS(file.path(out_dir, "data", paste0("OVC_S0293689_mutTable_", runtype, ".rds")))
+snv_list = c(snv_list_931070, snv_list_S0293689)
+names(snv_list) = stringr::str_extract(names(snv_list), "TCGA.{11}")
+```
+
+## Format a list of SNV tables
+* Input: `snv_list`, which is a SNPs/MNPs table before formatting      
+* Output: `res`, which is a properly formatted SNPs/MNPs table, and potentially 
+`mannual_snv_check`, which contains the samples with fewer than 3 SNVs. You need 
+to check it manually (there will be a message in this case) and add back to the `res`.
+
+```{r eval=TRUE}
+source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/formatSNVTable.R")
+```
+
+```{r eval=TRUE}
+if (exists("mannual_snv_check")) {
+    for (i in seq_along(mannual_snv_check)) {
+        samplename = names(mannual_snv_check)[i]
+        snv_list[[samplename]] = mannual_snv_check[[i]]
+    }
+}
+snv_list = res   # assign 
+```
+
+
+# Run dNdSCV
+* Input: `snv_list`, which is the properly formatted SNPs/MNPs table   
+* Output: `dndsout`, which is an output from `dndscv::dndscv` function
+
+```{r eval=TRUE}
+source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/rundNdSCV.R")
+```
+
+```{r echo=FALSE, eval=FALSE}
+saveRDS(dndsout, file = file.path(dnds_out_dir, paste0("dndsout_OVC_", runtype, ".rds")))
+```
+
+
+## Excluded samples 
+We have run dNdScv with default parameters. This includes removing ultra-hypermutator
+samples and subsampling mutations when encountering too many mutations per gene in the
+same sample. These were designed to protect against loss of sensitivity from 
+ultra-hypermutators and from clustered artefacts in the input mutation table, but 
+there are occasions when the user will prefer to relax these.   
+
+
+
+# EDA on dNdSCV outputs
+`sel_cv` is gene-wise selection results using dNdScv.
+
+```{r}
+sel_cv = dndsout$sel_cv
+signif_genes = sel_cv[sel_cv$qglobal_cv < 0.1, c("gene_name", "qglobal_cv")]
+rownames(signif_genes) = NULL
+
+print(signif_genes)
+write.csv(signif_genes, file = file.path(dnds_out_dir, paste0("signif_genes_OVC_", runtype, ".csv")))
+```
+
+
+```{r}
+signif_dir = "/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/OVC"
+t = read.csv(file.path(signif_dir, "tumor_only/signif_genes_OVC_tumor_only.csv"))[,-1]
+m = read.csv(file.path(signif_dir, "matching_normal/signif_genes_OVC_matching_normal.csv"))[,-1]
+
+colnames(t)[2] = "qglobal_cv_tumorOnly"
+colnames(m)[2] = "qglobal_cv_matchingN"
+
+all = merge(m, t, by = "gene_name")
+```
+
+```{r fig.width=4.5, fig.height=4.5}
+library(VennDiagram)
+
+grid.newpage()
+draw.pairwise.venn(area1 = nrow(m),
+                   area2 = nrow(t),
+                   cross.area = nrow(all),
+                   category = c("matching_normal", "tumor_only"),
+                   lty = rep("blank", 2), 
+                   fill = c("light blue", "pink"), 
+                   alpha = rep(0.5, 2), 
+                   cat.pos = c(0, 0), 
+                   cat.dist = rep(0.025, 2))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## Format mutation input
+```{r eval=TRUE}
+names(snv_list) = stringr::str_extract(names(snv_list), "TCGA.{11}")
+
+for (i in seq_along(snv_list)) {
+    snv_list[[i]]$Sampleid = stringr::str_extract(snv_list[[i]]$Sampleid, "TCGA.{11}")
+    snv_list[[i]] = snv_list[[i]][c("Sampleid", "chr", "start", "REF", "ALT")]
+    colnames(snv_list[[i]]) = c("sampleID", "chr", "pos", "ref", "mut")
+    
+    # remove non-unique calls
+    dup = duplicated(snv_list[[i]]$pos)
+    snv_list[[i]] = snv_list[[i]][!dup,]
+}
+```
+
+# Build reference for dNdSCV
+```{r eval=FALSE}
+wd = "~/data2/PureCN_manuscript/Revision/dNdSCV"
+path_cds_table = file.path(wd, "mart_export.txt")
+path_genome_fasta = "~/reference/GRCh38_no_alt/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna"
+
+# Build GRCh38 reference
+buildref(cdsfile = path_cds_table, 
+         genomefile = path_genome_fasta, 
+         outfile = file.path(wd, "GRCh38_refcds.rda"), 
+         excludechrs = "MT")
+```
+
+# Run dNdSCV
+```{r eval=TRUE}
+wd = "~/data2/PureCN_manuscript/Revision/dNdSCV"
+
+dndsout_tumor = list()
+for (i in seq_along(snv_list)) {
+    sample_name = names(snv_list)[i]
+    dndsout = dndscv(snv_list[[i]], 
+                     refdb = file.path(wd, "GRCh38_refcds.rda"),
+                     max_muts_per_gene_per_sample = 5,   # default is 3
+                     max_coding_muts_per_sample = 20000,   # default is 3000
+                     cv = NULL)
+    dndsout_tumor[[sample_name]] = dndsout
+}
+```
+
+
+
+
+
+
+
+
+```{r}
+# Using buildref
+path_cds_table = system.file("extdata", "BioMart_human_GRCh37_chr3_segment.txt", package = "dndscv", mustWork = TRUE)
+path_genome_fasta = system.file("extdata", "chr3_segment.fa", package = "dndscv", mustWork = TRUE)
+buildref(cdsfile=path_cds_table, genomefile=path_genome_fasta, outfile = "example_output_refcds.rda", excludechrs="MT")
+
+
+# Running dNdScv with a new RefCDS object
+segment = c(178.8e6,179.3e6) # The 500kb segment of the genome used to generate the new RefCDS
+data("dataset_simbreast", package="dndscv") # Example dataset
+mutations = mutations[mutations$chr=="3" & mutations$pos>segment[1] & mutations$pos<segment[2], ] # Restricting the mutations to those inside the segment
+mutations$pos = mutations$pos-segment[1]+1 # Correcting the position of the mutations to their position in the reference fasta file used
+dndsout = dndscv(mutations, refdb="example_output_refcds.rda", cv=NULL)
+print(dndsout$sel_cv) # This is shown as an example but these results based on a few genes should not be trusted
+```
+
+```{r}
+head(mutations)
+```
+
+```{r}
+print(dndsout$globaldnds)
+```
+

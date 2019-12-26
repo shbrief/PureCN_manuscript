@@ -161,15 +161,24 @@ for (i in unique_abs) {
 t2 = t2[which(t2$loh.pcn %in% unique_abs),]
 ```
 
-```{r fig.width=5, fig.height=5, eval=TRUE}
-ggplot(t2, aes(x = loh.abs, y = loh.pcn)) +   # 33,195 data points
+```{r eval=TRUE}
+# figure styling
+source("~/data2/PureCN_manuscript/Figures/manuscript_figure_style.R")
+
+ovc_loh_all = ggplot(t2, aes(x = loh.abs, y = loh.pcn)) +   # 33,195 data points
     geom_point(aes(size = num), alpha = 0.5, show.legend = FALSE) +
     geom_text(aes(label = num), col = "white", size = 3) +
     # scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
     scale_size(range = c(0.5, 25)) +
-    ggtitle("A. TCGA-OV: LOH") +
-    xlab("SNP6 array (ABSOLUTE)") + ylab("Tumor WES (PureCN)")
+    ggtitle("E. TCGA-OV: Integer Copy Number") +
+    xlab("SNP6 array (ABSOLUTE)") + ylab("Tumor WES (PureCN)") +
+    customPlot
 ```
 
+```{r fig.width=5, fig.height=5, eval=TRUE}
+ovc_loh_all
 
+out_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
+saveRDS(ovc_loh_all, file = file.path(out_dir, "Fig1E.ovc_loh_all.rds"))
+```
 

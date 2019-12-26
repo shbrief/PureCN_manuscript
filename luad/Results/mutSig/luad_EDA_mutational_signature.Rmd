@@ -36,7 +36,7 @@ run_type = "tumor_only"
 ## Capture kit 931070
 ##### Make a list with paths to all '_signature.csv' files
 ```{r}
-Dx_dir = "/data/ovarian/CNVworkflow_LUAD/purecn_output/Dx"
+Dx_dir = "/nobackup/16tb_a/CNVworkflow_LUAD/purecn_output/Dx"
 cds_dir = file.path(Dx_dir, paste0(run_type, "_cds"))
 fname = list.files(cds_dir)
 

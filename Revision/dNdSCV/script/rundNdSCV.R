@@ -6,4 +6,4 @@ mut_all = mut_all[-1,]
 
 
 ##### Run dNdSCV ###############################################################
-dndsout = dndscv(mut_all, refdb = file.path(wd, "GRCh38_refcds.rda"), cv = NULL)
+dndsout = dndscv(mut_all, refdb = file.path(wd, "reference/GRCh38_refcds.rda"), cv = NULL)

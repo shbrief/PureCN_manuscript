@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-```{r, echo=FALSE, results="hide", warning=FALSE}
+```{r, echo=FALSE, results="hide", warning=FALSE, eval=FALSE}
 if (!"pathwork" %in% installed.packages())
     devtools::install_github("thomasp85/patchwork")
 
@@ -38,14 +38,14 @@ library(patchwork)
     + F1F: `luad_manuscript_loh_t_plots.Rmd`
     
 ```{r}
-data_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures"
+data_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
 F1A = readRDS(file.path(data_dir, "Fig1A.ovc_puri.rds"))
 F1B = readRDS(file.path(data_dir, "Fig1B.ovc_ploi.rds"))
 F1C = readRDS(file.path(data_dir, "Fig1C.luad_puri.rds"))
 F1D = readRDS(file.path(data_dir, "Fig1D.luad_ploi.rds"))
 
-F1E = readRDS(file.path(data_dir, "Fig1E.ovc_loh.rds"))
-F1F = readRDS(file.path(data_dir, "Fig1F.luad_loh.rds"))
+F1E = readRDS(file.path(data_dir, "Fig1E.ovc_loh_all.rds"))
+F1F = readRDS(file.path(data_dir, "Fig1F.luad_loh_all.rds"))
 ```
 
 ```{r fig.width=8, fig.height=9}
@@ -53,12 +53,8 @@ F1F = readRDS(file.path(data_dir, "Fig1F.luad_loh.rds"))
   (F1C | F1D)
 ```
 
-```{r fig.width=10, fig.height=3.5}
+```{r fig.width=9, fig.height=5}
 F1E | F1F
-```
-
-```{r eval=FALSE, fig.width=5.5, fig.height=7}
-F1E / F1F
 ```
 
 ## Figure 2
@@ -69,7 +65,7 @@ F1E / F1F
     + F2B/G/H: `luad_manuscript_benchmark_plots.Rmd`
 
 ```{r}
-data_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures"
+data_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
 
 F2A = readRDS(file.path(data_dir, "Fig2A.ovc_AUC_gain.rds"))
 F2B = readRDS(file.path(data_dir, "Fig2B.luad_AUC_gain.rds"))
@@ -96,7 +92,7 @@ F2H = readRDS(file.path(data_dir, "Fig2H.luad_sgz_accuracy.rds"))
     + F3C: `luad_manuscript_mutSig_plots.Rmd`
     
 ```{r}
-data_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures"
+data_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
 
 F3A = readRDS(file.path(data_dir, "Fig3A.TMB.rds"))
 F3B = readRDS(file.path(data_dir, "Fig3B.ovc_mutSig.rds"))
@@ -123,7 +119,7 @@ F3B + F3C + plot_layout(nrow = 1, width = c(1, 2))
     + SF2C/D: `LUAD/Results/Figure_FACETS_luad.Rmd`
 
 ```{r}
-data_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures"
+data_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
 
 SF2A = readRDS(file.path(data_dir, "SFig2A.ovc_puri.rds"))
 SF2B = readRDS(file.path(data_dir, "SFig2B.ovc_ploi.rds"))

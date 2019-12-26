@@ -1,0 +1,46 @@
+---
+title: "Correcting PureCN SNV outputs using COSMIC"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output:
+  BiocStyle::html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+vignette: >
+  % \VignetteIndexEntry{Statistical analysis output}
+  % \VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE)
+```
+
+# Add back COSMIC mutations
+## Import COSMIC vcf
+```{r}
+library(VariantAnnotation)
+vcf = readVcf("~/data2/PureCN_manuscript/Revision/dNdSCV/data/CosmicCodingMuts.vcf.bgz", "hg38")
+cnt = readInfo("~/data2/PureCN_manuscript/Revision/dNdSCV/data/CosmicCodingMuts.vcf.bgz", "CNT")
+```
+
+## Subset hotspots
+```{r}
+hotspot_range = cnt[which(cnt > 20)]
+snv = rowRanges(vcf)
+hotspot_snv = snv[which(names(snv) %in% names(hotspot_range)),]
+saveRDS(hotspot_snv, "~/data2/PureCN_manuscript/Revision/dNdSCV/data/COSMIC_hotspot.rds")
+```
+
+## Make GRanges from PureCN output data frame
+```{r}
+# make GRanges from PureCN SNV calls
+df = data.frame(chr = gsub("chr","",p$chr), start = p$start, end = p$end)
+grl = makeGRangesFromDataFrame(df)
+# find the overlaps b/w PureCN calls and COSMIC
+hotspot_snv = readRDS("~/data2/PureCN_manuscript/Revision/dNdSCV/data/COSMIC_hotspot.rds")
+ol = findOverlaps(grl, hotspot_snv, ignore.strand = TRUE)
+# keep the COSMIC hotspots, which will be added
+hotspots = p[queryHits(ol),]
+```
+

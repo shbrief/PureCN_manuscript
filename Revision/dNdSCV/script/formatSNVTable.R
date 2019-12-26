@@ -28,7 +28,7 @@ num_snv = sapply(snv_list, function(x) {nrow(x)})
 snv_ind = which(num_snv <= 3)
 
 if (length(snv_ind) != 0) {
-    mannual_snv_check = snv_list[snv_ind]
+    mannual_snv_check = snv_list[snv_ind]  # subset/save any sample with less than 3 SNVs
     print("Manually check MNP in the list,`mannual_snv_check`")
     snv_list[snv_ind] = NULL
 }

@@ -1,0 +1,252 @@
+---
+title: "dNdSCV outputs from tumor-only and matching-normal samples"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output:
+  BiocStyle::html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+vignette: >
+  % \VignetteIndexEntry{Statistical analysis output}
+  % \VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+```
+
+# EDA on dndsout
+```{r eval=FALSE}
+i = 1   # Select runtype
+runtype = c("tumor_only", "matching_normal")[i]
+dnds_out_dir = file.path("/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/LUAD", runtype, "ML_SOMATIC_FILTER")
+
+qglobal_cv_cutoff = 0.001
+assign(paste0("dndsout_", runtype), readRDS(file.path(dnds_out_dir, paste0("dndsout_LUAD_", runtype, ".rds"))))
+# assign(paste0("sel_cv_", runtype), dndsout$sel_cv)
+# assign(paste0("signif_genes_", runtype), sel_cv[sel_cv$qglobal_cv < qglobal_cv_cutoff, c("gene_name", "qglobal_cv")])
+
+i = 2   # Select runtype
+runtype = c("tumor_only", "matching_normal")[i]
+dnds_out_dir = file.path("/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/LUAD", runtype, "ML_SOMATIC_FILTER")
+
+qglobal_cv_cutoff = 0.1
+assign(paste0("dndsout_", runtype), readRDS(file.path(dnds_out_dir, paste0("dndsout_LUAD_", runtype, ".rds"))))
+# assign(paste0("sel_cv_", runtype), dndsout$sel_cv)
+# assign(paste0("signif_genes_", runtype), sel_cv[sel_cv$qglobal_cv < qglobal_cv_cutoff, c("gene_name", "qglobal_cv")])
+
+m = as.vector(dndsout_matching_normal$sel_loc$gene_name[dndsout_matching_normal$sel_loc$qall_loc<0.1])
+t = as.vector(dndsout_tumor_only$sel_loc$gene_name[dndsout_tumor_only$sel_loc$qall_loc<0.1])
+
+length(m)
+length(t)
+length(intersect(m,t))
+intersect(m,t)
+```
+
+# Check KRAS 
+Extract KRAS status
+```{r eval=FALSE}
+i = 1
+runtype = c("tumor_only", "matching_normal")[i]
+data_dir = file.path("/nobackup/16tb_a/CNVworkflow_LUAD/purecn_output/PureCN", runtype)
+
+sample_dir = list.files(data_dir)
+file_list = sapply(sample_dir, function(x) list.files(file.path(data_dir, x)))
+mut = sapply(file_list, function(x) x[grep("*_variants.csv$", x)])
+source("~/Documents/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
+sub_ind = which(stringr::str_extract(names(mut), "TCGA.{11}") %in% luad_442)
+mut = mut[sub_ind]
+
+p = read.csv(file.path(data_dir, names(mut[i]), mut[[i]]))
+colNames = colnames(p)
+test = as.data.frame(matrix(NA, ncol = length(colNames)))
+colnames(test) = colNames
+
+for (i in seq_along(mut)) {
+    p = read.csv(file.path(data_dir, names(mut[i]), mut[[i]]))
+    q = p[which(p$gene.symbol == "KRAS"),]
+    test = rbind(test, q)
+}
+
+# write.csv(test, paste0("~/data2/PureCN_manuscript/Revision/dNdSCV/data/KRAS_",runtype,".csv"))
+```
+
+```{r eval=FALSE}
+out_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
+kras_t = read.csv(file.path(out_dir, "data/KRAS_tumor_only.csv"))[-1,-1]
+kras_m = read.csv(file.path(out_dir, "data/KRAS_matching_normal.csv"))[-1,-1]
+```
+
+
+
+
+
+
+
+
+# Filter with ML.SOMATIC
+## LUAD
+**Significant genes in tumor-only**   
+Because I didn't used COSMIC VCF fils (COSMIC.CNT) for PureCN run, many SNVs in dbSNP 
+are removed in the prior.somatic filtering process. We decided to do 'quick and dirty' 
+fix of it, by adding COSMIC SNVs with CNT >
+
+
+```{r}
+signif_dir = "/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/LUAD"
+t = read.csv(file.path(signif_dir, "tumor_only/signif_genes_LUAD_tumor_only.csv"))[,-1]
+m = read.csv(file.path(signif_dir, "matching_normal/ML_SOMATIC_FILTER/signif_genes_LUAD_matching_normal.csv"))[,-1]
+
+colnames(t)[2] = "qglobal_cv_tumorOnly"
+colnames(m)[2] = "qglobal_cv_matchingN"
+
+all = merge(m, t, by = "gene_name")
+```
+
+### Summary Table
+```{r message=FALSE}
+summary = dplyr::full_join(t, m)
+colnames(summary) = c("Gene", "Tumor only", "Matching normal")
+summary
+```
+
+```{r}
+dplyr::inner_join(t, m, by = "gene_name")
+```
+
+### Venn Diagram
+```{r fig.width=4.5, fig.height=4.5}
+library(VennDiagram)
+
+grid.newpage()
+draw.pairwise.venn(area1 = nrow(m),
+                   area2 = nrow(t),
+                   cross.area = nrow(all),
+                   category = c("matching_normal", "tumor_only"),
+                   lty = rep("blank", 2), 
+                   fill = c("light blue", "pink"), 
+                   alpha = rep(0.5, 2), 
+                   cat.pos = c(0, 0), 
+                   cat.dist = rep(0.025, 2))
+```
+
+### Cancer Genes
+```{r fig.height=4.5, fig.width=4.5}
+plot(x = -log(all$qglobal_cv_matchingN), 
+     y = -log(all$qglobal_cv_tumorOnly),
+     main = "Cancer Genes in LUAD (-log(q-value))",
+     xlab = "Matching-normal",
+     ylab = "Tumor-only",
+     xlim = c(0,20), ylim = c(0,20))
+abline(0, 1, col = "red")
+```
+
+
+
+
+
+
+## OVC
+```{r}
+signif_dir = "/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/OVC"
+t = read.csv(file.path(signif_dir, "tumor_only/ML_SOMATIC_FILTER/signif_genes_OVC_tumor_only.csv"))[,-1]
+m = read.csv(file.path(signif_dir, "matching_normal/ML_SOMATIC_FILTER/signif_genes_OVC_matching_normal.csv"))[,-1]
+
+colnames(t)[2] = "qglobal_cv_tumorOnly"
+colnames(m)[2] = "qglobal_cv_matchingN"
+
+all = merge(m, t, by = "gene_name")
+```
+
+### Summary Table
+```{r message=FALSE}
+summary = dplyr::full_join(t, m)
+colnames(summary) = c("Gene", "Tumor only", "Matching normal")
+summary
+```
+
+### Venn Diagram
+```{r fig.width=4.5, fig.height=4.5}
+library(VennDiagram)
+
+grid.newpage()
+draw.pairwise.venn(area1 = nrow(m),
+                   area2 = nrow(t),
+                   cross.area = nrow(all),
+                   category = c("matching_normal", "tumor_only"),
+                   lty = rep("blank", 2), 
+                   fill = c("light blue", "pink"), 
+                   alpha = rep(0.5, 2), 
+                   cat.pos = c(0, 0), 
+                   cat.dist = rep(0.025, 2))
+```
+
+### Cancer Genes
+```{r fig.height=4.5, fig.width=4.5}
+plot(x = -log(all$qglobal_cv_matchingN), 
+     y = -log(all$qglobal_cv_tumorOnly),
+     main = "Cancer Genes in OVC (-log(q-value))",
+     xlab = "Matching-normal",
+     ylab = "Tumor-only",
+     xlim = c(0,16), ylim = c(0,16))
+abline(0, 1, col = "red")
+```
+
+
+
+
+
+
+
+
+
+
+# Filter with POSTERIOR.SOMATIC
+## LUAD
+```{r}
+signif_dir = "/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/LUAD"
+t = read.csv(file.path(signif_dir, "tumor_only/signif_genes_LUAD_tumor_only.csv"))[,-1]
+m = read.csv(file.path(signif_dir, "matching_normal/signif_genes_LUAD_matching_normal.csv"))[,-1]
+
+colnames(t)[2] = "qglobal_cv_tumorOnly"
+colnames(m)[2] = "qglobal_cv_matchingN"
+
+all = merge(m, t, by = "gene_name")
+```
+
+### Summary Table
+```{r message=FALSE}
+summary = dplyr::full_join(t, m)
+colnames(summary) = c("Gene", "Tumor only", "Matching normal")
+summary
+```
+
+### Venn Diagram
+```{r fig.width=4.5, fig.height=4.5}
+library(VennDiagram)
+
+grid.newpage()
+draw.pairwise.venn(area1 = nrow(m),
+                   area2 = nrow(t),
+                   cross.area = nrow(all),
+                   category = c("matching_normal", "tumor_only"),
+                   lty = rep("blank", 2), 
+                   fill = c("light blue", "pink"), 
+                   alpha = rep(0.5, 2), 
+                   cat.pos = c(0, 0), 
+                   cat.dist = rep(0.025, 2))
+```
+
+### Cancer Genes
+```{r fig.height=4.5, fig.width=4.5}
+plot(x = -log(all$qglobal_cv_matchingN), 
+     y = -log(all$qglobal_cv_tumorOnly),
+     main = "Cancer Genes in LUAD (-log(q-value))",
+     xlab = "Matching-normal",
+     ylab = "Tumor-only",
+     xlim = c(0,16), ylim = c(0,16))
+abline(0, 1, col = "red")
+```
+

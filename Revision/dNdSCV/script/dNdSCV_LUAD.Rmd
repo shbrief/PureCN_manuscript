@@ -31,22 +31,10 @@ wd = "~/data2/PureCN_manuscript/Revision/dNdSCV"
 dnds_out_dir = file.path("/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/LUAD", runtype)
 ```
 
-
-
 # Build a reference for dNdSCV
 ```{r eval=FALSE}
-path_cds_table = file.path(wd, "mart_export.txt")
-path_genome_fasta = "~/reference/GRCh38_no_alt/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna"
-
-# Build GRCh38 reference
-buildref(cdsfile = path_cds_table, 
-         genomefile = path_genome_fasta, 
-         outfile = file.path(wd, "GRCh38_refcds.rda"), 
-         excludechrs = "MT")
+# source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/buildReference.R")
 ```
-
-
-
 
 
 # Prepare SNV mutations table from PureCN
@@ -57,18 +45,18 @@ mutation tables (`snv_list`).
 - input: `i`, `out_dir`, `data_dir`   
 - output: `snv_list`   
 
-```{r buildSNVTable, eval=FALSE}
+```{r buildSNVTable}
 out_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
 data_dir = file.path("/nobackup/16tb_a/CNVworkflow_LUAD/purecn_output/PureCN", runtype)
 
-source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/buildSNVTable.R")
+source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/buildSNVTable_LUAD.R")
 ```
 
 
 # Format mutation table
 ## Load a list of SNV tables
 ```{r setup_2}
-snv_list = readRDS(file.path(wd, paste0("LUAD_mutTable_", runtype, ".rds")))
+snv_list = readRDS(file.path(wd, "data", paste0("LUAD_mutTable_", runtype, ".rds")))
 names(snv_list) = stringr::str_extract(names(snv_list), "TCGA.{11}")
 ```
 
@@ -83,7 +71,12 @@ source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/formatSNVTable.R")
 ```
 
 ```{r eval=TRUE}
-snv_list = c(snv_list, mannual_snv_check)
+if (exists("mannual_snv_check")) {
+    for (i in seq_along(mannual_snv_check)) {
+        samplename = names(mannual_snv_check)[i]
+        snv_list[[samplename]] = mannual_snv_check[[i]]
+    }
+}
 snv_list = res   # assign 
 ```
 
@@ -91,6 +84,11 @@ snv_list = res   # assign
 # Run dNdSCV
 * Input: `snv_list`, which is the properly formatted SNPs/MNPs table   
 * Output: `dndsout`, which is an output from `dndscv::dndscv` function
+* **Excluded samples** : We have run dNdScv with default parameters. This includes
+removing ultra-hypermutator samples and subsampling mutations when encountering too
+many mutations per gene in the same sample. These were designed to protect against 
+loss of sensitivity from ultra-hypermutators and from clustered artefacts in the 
+input mutation table, but there are occasions when the user will prefer to relax these.
 
 ```{r eval=TRUE}
 source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/rundNdSCV.R")
@@ -100,29 +98,19 @@ source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/rundNdSCV.R")
 saveRDS(dndsout, file = file.path(dnds_out_dir, paste0("dndsout_LUAD_", runtype, ".rds")))
 ```
 
-
-## Excluded samples 
-We have run dNdScv with default parameters. This includes removing ultra-hypermutator
-samples and subsampling mutations when encountering too many mutations per gene in the
-same sample. These were designed to protect against loss of sensitivity from 
-ultra-hypermutators and from clustered artefacts in the input mutation table, but 
-there are occasions when the user will prefer to relax these.   
-
-
-
-# EDA on dNdSCV outputs
+## Save `sel_cv` output
 `sel_cv` is gene-wise selection results using dNdScv.
 
 ```{r}
 sel_cv = dndsout$sel_cv
-signif_genes = sel_cv[sel_cv$qglobal_cv < 0.1, c("gene_name", "qglobal_cv")]
+signif_genes = sel_cv[sel_cv$qglobal_cv < 0.001, c("gene_name", "qglobal_cv")]   # I've been trying 0.1 and 0.001 q-value cutoff.
 rownames(signif_genes) = NULL
 
 print(signif_genes)
 write.csv(signif_genes, file = file.path(dnds_out_dir, paste0("signif_genes_LUAD_", runtype, ".csv")))
 ```
 
-
+# EDA on dNdSCV outputs
 ```{r}
 signif_dir = "/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/LUAD"
 t = read.csv(file.path(signif_dir, "tumor_only/signif_genes_LUAD_tumor_only.csv"))[,-1]
