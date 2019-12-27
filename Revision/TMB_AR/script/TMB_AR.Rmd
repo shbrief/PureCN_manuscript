@@ -1,0 +1,102 @@
+---
+title: "TMB.AR from OVC samples"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output:
+  BiocStyle::html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+vignette: >
+  % \VignetteIndexEntry{Statistical analysis output}
+  % \VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE)
+```
+
+# OVC
+```{r eval=FALSE}
+catalogs = c("931070", "S0293689")
+
+for (catalog in catalogs) {
+    out_dir = file.path("/nobackup/16tb_b/CNVworkflow/", catalog, "purecn_output")
+    data_dir = file.path(out_dir, paste0(catalog, "_BenchmarkTumorOnly/tumor_only"))
+    fname_all = list.files(data_dir)
+    fname_ind = grep("_only_benchmark.csv", fname_all)
+    fname = fname_all[fname_ind]
+    
+    colNames = colnames(read.csv(file.path(data_dir, fname[1])))
+    TMB_AR = as.data.frame(matrix(NA, ncol = length(colNames)))
+    colnames(TMB_AR) = colNames
+    
+    for (x in fname) {
+        p = read.csv(file.path(data_dir, x))
+        TMB_AR = rbind(TMB_AR, p)
+    }
+    assign(paste0("TMB_AR_", catalog), TMB_AR[-1,])
+}
+```
+
+```{r}
+p = TMB_AR_S0293689$Sampleid 
+
+# match filenames with sample names
+mani = read.table("~/data2/PureCN_manuscript/Data/manifest/ovc_manifest.tsv")
+x = as.data.frame(matrix(NA, nrow = length(p), ncol=3))
+colnames(x) = c("file_name", "barcode", "sample_name")
+x$file_name = p
+for (i in 1:nrow(x)) {
+    y = x$file_name[i]
+    if (!identical(y, "character(0)")) {
+        z = mani$barcode[which(gsub(".bam", "",mani$filename) == y)]
+        x$barcode[i] = as.character(z)
+        x$sample_name[i] = stringr::str_extract(x$barcode[i], "TCGA.{11}")
+    } else {
+        next
+    }
+}
+
+TMB_AR_931070$Sampleid = stringr::str_extract(TMB_AR_931070$Sampleid, "TCGA.{11}")
+TMB_AR_S0293689$Sampleid = x$sample_name
+```
+
+```{r}
+source("~/Documents/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
+TMB_AR_OVC = rbind(TMB_AR_931070, TMB_AR_S0293689)
+TMB_AR_OVC = TMB_AR_OVC[which(TMB_AR_OVC$Sampleid %in% ovc_236),]
+```
+
+```{r eval=FALSE}
+write.csv(TMB_AR_OVC, "~/data2/PureCN_manuscript/Revision/TMB_AR/data/TMB_AR_OVC.csv")
+```
+
+
+# LUAD
+```{r}
+data_dir = "/nobackup/16tb_a/CNVworkflow_LUAD/purecn_output/BenchmarkTumorOnly/tumor_only"
+fname_all = list.files(data_dir)
+fname_ind = grep("_only_benchmark.csv", fname_all)
+fname = fname_all[fname_ind]
+
+colNames = colnames(read.csv(file.path(data_dir, fname[1])))
+TMB_AR = as.data.frame(matrix(NA, ncol = length(colNames)))
+colnames(TMB_AR) = colNames
+
+
+for (x in fname) {
+    p = read.csv(file.path(data_dir, x))
+    TMB_AR = rbind(TMB_AR, p)
+}
+```
+
+```{r}
+TMB_AR_LUAD = TMB_AR[-1,]
+TMB_AR_LUAD$Sampleid = stringr::str_extract(TMB_AR_LUAD$Sampleid, "TCGA.{11}")
+TMB_AR_LUAD = TMB_AR_LUAD[which(TMB_AR_LUAD$Sampleid %in% luad_442),]
+```
+
+```{r eval=FALSE}
+write.csv(TMB_AR_LUAD, "~/data2/PureCN_manuscript/Revision/TMB_AR/data/TMB_AR_LUAD.csv")
+```

@@ -30,7 +30,7 @@ library(cowplot)
 
 ## Load LOH output
 ```{r}
-data_dir = "~/wallabe4_backup/github/PureCN_manuscript"
+data_dir = "~/data2/PureCN_manuscript"
 results_dir = file.path(data_dir, "luad/Results/LOH")
 
 TP53_all = read.csv(file.path(results_dir, "extdata/luad_TP53_all.tsv"))[,-1]   # 332 obs.
@@ -247,7 +247,7 @@ data = data.frame(condition, value, type)
 ```{r figure.width=7, figure.height= 5}
 LOH_t_plot = ggplot(data, aes(fill=condition, y=value, x = type, order = as.numeric(value))) + 
   geom_bar(stat="identity", position="fill", width = 0.4) +
-  labs(title = "F. TCGA-LUAD: LOH") + 
+  labs(title = "H. TCGA-LUAD: LOH") + 
   theme_light() +
   theme(plot.title = element_text(size = 14, 
                                   face = "bold", 
@@ -269,11 +269,11 @@ LOH_t_plot = ggplot(data, aes(fill=condition, y=value, x = type, order = as.nume
         # legend.text = element_text(size = 10, face = "bold"),
         plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")) +
   scale_y_continuous(labels = scales::percent) + ylab("Concordance") + 
-  scale_fill_manual(values = c("grey", "dark grey", "tomato", "red"))
+  scale_fill_manual(values = c("grey", "grey65", "tomato", "red"))
 
 LOH_t_plot
 ```
 
 ```{r eval=FALSE}
-saveRDS(LOH_t_plot, file = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures/Fig1F.luad_loh.rds")
+saveRDS(LOH_t_plot, file = "~/data2/PureCN_manuscript/Figures/Final_Figures/Fig1H.luad_loh.rds")
 ```

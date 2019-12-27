@@ -56,7 +56,12 @@ source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/buildSNVTable_LUAD.R")
 # Format mutation table
 ## Load a list of SNV tables
 ```{r setup_2}
-snv_list = readRDS(file.path(wd, "data", paste0("LUAD_mutTable_", runtype, ".rds")))
+if (runtype == "matching_normal") {
+    snv_list = readRDS(file.path(wd, "data", paste0("LUAD_mutTable_", runtype, ".rds")))
+} else if (runtype == "tumor_only") {
+    snv_list = readRDS(file.path(out_dir, "data", paste0("LUAD_mutTable_", runtype, "_rescalePriors.rds")))
+}
+
 names(snv_list) = stringr::str_extract(names(snv_list), "TCGA.{11}")
 ```
 
@@ -95,63 +100,5 @@ source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/rundNdSCV.R")
 ```
 
 ```{r echo=FALSE, eval=FALSE}
-saveRDS(dndsout, file = file.path(dnds_out_dir, paste0("dndsout_LUAD_", runtype, ".rds")))
+saveRDS(dndsout, file = file.path(dnds_out_dir, paste0("dndsout_LUAD_", runtype, "_rescalePriors.rds")))
 ```
-
-## Save `sel_cv` output
-`sel_cv` is gene-wise selection results using dNdScv.
-
-```{r}
-sel_cv = dndsout$sel_cv
-signif_genes = sel_cv[sel_cv$qglobal_cv < 0.001, c("gene_name", "qglobal_cv")]   # I've been trying 0.1 and 0.001 q-value cutoff.
-rownames(signif_genes) = NULL
-
-print(signif_genes)
-write.csv(signif_genes, file = file.path(dnds_out_dir, paste0("signif_genes_LUAD_", runtype, ".csv")))
-```
-
-# EDA on dNdSCV outputs
-```{r}
-signif_dir = "/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/LUAD"
-t = read.csv(file.path(signif_dir, "tumor_only/signif_genes_LUAD_tumor_only.csv"))[,-1]
-m = read.csv(file.path(signif_dir, "matching_normal/signif_genes_LUAD_matching_normal.csv"))[,-1]
-
-colnames(t)[2] = "qglobal_cv_tumorOnly"
-colnames(m)[2] = "qglobal_cv_matchingN"
-
-all = merge(m, t, by = "gene_name")
-```
-
-```{r fig.width=4.5, fig.height=4.5}
-library(VennDiagram)
-
-grid.newpage()
-draw.pairwise.venn(area1 = nrow(m),
-                   area2 = nrow(t),
-                   cross.area = nrow(all),
-                   category = c("matching_normal", "tumor_only"),
-                   lty = rep("blank", 2), 
-                   fill = c("light blue", "pink"), 
-                   alpha = rep(0.5, 2), 
-                   cat.pos = c(0, 0), 
-                   cat.dist = rep(0.025, 2))
-```
-
-```{r plot_signif_genes, fig.height=4.5, fig.width=4.5}
-plot(x = -log(all$qglobal_cv_matchingN), 
-     y = -log(all$qglobal_cv_tumorOnly),
-     main = "Significant genes (-log(q-value))",
-     xlab = "With matching-normal",
-     ylab = "Tumor-only",
-     xlim = c(0,16), ylim = c(0,16))
-abline(0, 1, col = "red")
-# with(all, text(all$qglobal_cv_matchingN ~ all$qglobal_cv_tumorOnly, 
-#                labels = all$gene_name, 
-#                cex = 0.7)
-#      )
-```
-
-
-
-
-

@@ -67,7 +67,7 @@ loh_list_pcn[1:2]
 # Load ABSOLUTE GrangesList_hg38
 ```{r eval=FALSE}
 abs_gl = readRDS("~/Documents/github/subtypeHeterogeneity/inst/extdata/ABSOLUTE_grangeslist.rds")
-ovc_abs_gl = abs_gl[names(abs_gl) %in% ovc_sampleId]   # 250 <-- 442 samples
+ovc_abs_gl = abs_gl[names(abs_gl) %in% ovc_sampleId]   
 
 CreateLOHmetadata = function(x) {
     for (i in seq_along(x)) {

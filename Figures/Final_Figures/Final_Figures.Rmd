@@ -30,12 +30,15 @@ library(patchwork)
 ```
 
 ## Figure 1
-* File under `/Users/sehyunoh/wallabe4_backup/github/PureCN_manuscript/Figures`   
+* File under `~/data2/PureCN_manuscript/Figures`   
     + F1A/B: `manuscript_puri_ploi.Rmd`
-    + F1E: `manuscript_loh_t_plots.Rmd`
-* File under `/Users:/sehyunoh/wallabe4_backup/github/PureCN_manuscript/luad/Figures`
+    + F1G: `manuscript_loh_t_plots.Rmd`
+* File under `~/data2/PureCN_manuscript/luad/Figures`
     + F1C/D: `luad_manuscript_puri_ploi.Rmd`
-    + F1F: `luad_manuscript_loh_t_plots.Rmd`
+    + F1H: `luad_manuscript_loh_t_plots.Rmd`
+* File under `~/data2/PureCN_manuscript/Revision/LOH/script`
+    + F1E: `LOH_bubble_plot_OVC.Rmd`
+    + F1F: `LOH_bubble_plot_LUAD.Rmd`
     
 ```{r}
 data_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
@@ -46,6 +49,9 @@ F1D = readRDS(file.path(data_dir, "Fig1D.luad_ploi.rds"))
 
 F1E = readRDS(file.path(data_dir, "Fig1E.ovc_loh_all.rds"))
 F1F = readRDS(file.path(data_dir, "Fig1F.luad_loh_all.rds"))
+
+F1G = readRDS(file.path(data_dir, "Fig1G.ovc_loh.rds"))
+F1H = readRDS(file.path(data_dir, "Fig1H.luad_loh.rds"))
 ```
 
 ```{r fig.width=8, fig.height=9}
@@ -57,8 +63,12 @@ F1F = readRDS(file.path(data_dir, "Fig1F.luad_loh_all.rds"))
 F1E | F1F
 ```
 
+```{r fig.width=9.5, fig.height=3.5}
+F1G | F1H
+```
+
 ## Figure 2
-* File under `/Users/sehyunoh/wallabe4_backup/github/PureCN_manuscript/Figures`   
+* File under `~/data2/PureCN_manuscript/Figures`   
     + F2A/E/F: `manuscript_benchmark_plots.Rmd`
     + F2C/D: `manuscript_benchmark_both.Rmd`
 * File under `/Users:/sehyunoh/wallabe4_backup/github/PureCN_manuscript/luad/Figures`
@@ -85,7 +95,7 @@ F2H = readRDS(file.path(data_dir, "Fig2H.luad_sgz_accuracy.rds"))
 ```
 
 ## Figure 3
-* File under `/Users/sehyunoh/wallabe4_backup/github/PureCN_manuscript/Figures`   
+* File under `~/data2/PureCN_manuscript/Figures`   
     + F3A: `manuscript_TMB_both.Rmd`
     + F3B: `manuscript_mutSig_plots.Rmd`
 * File under `/Users:/sehyunoh/wallabe4_backup/github/PureCN_manuscript/luad/Figures`
@@ -114,7 +124,7 @@ F3B + F3C + plot_layout(nrow = 1, width = c(1, 2))
 ```
 
 ## Sup. Figure 2
-* File under `/Users/sehyunoh/wallabe4_backup/github/FACETS`   
+* File under `~/data2/FACETS`   
     + SF2A/B: `OVC/Results/Figure_FACETS.Rmd`
     + SF2C/D: `LUAD/Results/Figure_FACETS_luad.Rmd`
 
@@ -136,7 +146,7 @@ SF2D = readRDS(file.path(data_dir, "SFig2D.luad_ploi.rds"))
 ```
 
 ## Sup. Figure 3
-* File under `/Users/sehyunoh/wallabe4_backup/github/PureCN_manuscript/Figures`   
+* File under `~/data2/PureCN_manuscript/Figures`   
     + SF3: `manuscript_concordance_plot.Rmd`
 ```{r fig.width=8, fig.height= 5}
 data_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures"
@@ -146,7 +156,7 @@ SF3
 ```
 
 ## Sup. Figure 4
-* File under `/Users/sehyunoh/wallabe4_backup/github/PureCN_manuscript/Figures`   
+* File under `~/data2/PureCN_manuscript/Figures`   
     + SF4A/B: `manuscript_benchmark_both.Rmd`
 
 ```{r}

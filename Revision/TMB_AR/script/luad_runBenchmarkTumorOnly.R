@@ -27,11 +27,12 @@ if (!file.exists(Benchmark_out_dir)) {dir.create(Benchmark_out_dir)}
 # Run Benchmark.R
 allcalls_Benchmark <- lapply(seq_along(rds_list), function(i){
   # Benchmark.R = file.path(PURECN, "BenchmarkTumorOnly.R")
-  Benchmark.R = "~/data2/PureCN_manuscript/Revision/dNdSCV/script/BenchmarkTumorOnly.R"
+  Benchmark.R = "~/data2/PureCN_manuscript/Revision/TMB_AR/script/BenchmarkTumorOnly.R"
   mycall_Benchmark <- paste("Rscript", Benchmark.R,
                      "--out", file.path(Benchmark_out_dir, rds_list[i]),
                      "--rds", file.path(rds_dir, rds_list[i], paste0(rds_list[i], ".rds")),
-                     "--vcf", file.path(mutect_dir, paste0(rds_list[i], "_matching_mutect.vcf"))
+                     "--vcf", file.path(mutect_dir, paste0(rds_list[i], "_matching_mutect.vcf")),
+                     "--callable", file.path(out_dir, "Dx/callableLoci/filtered_cds", paste0(rds_list[i], "_callable_status_filtered_cds.bed"))
                      )
 })
 

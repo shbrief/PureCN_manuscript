@@ -20,7 +20,7 @@ suppressPackageStartupMessages({
 
 ```{r}
 out_dir = "~/data2/PureCN_manuscript/Revision"
-loh_list = readRDS(file.path(out_dir, "LOH/luad_LOH_all.rds"))
+loh_list = readRDS(file.path(out_dir, "LOH/data/luad_LOH_all.rds"))
 # loh_list = readRDS(file.path(out_dir, "luad_LOH_all_PSCBS.rds"))
 names(loh_list) = stringr::str_extract(names(loh_list), "TCGA.{11}")
 loh_list = lapply(loh_list, function(x) {x[!is.na(x$C) & !is.na(x$M),]})   # remove NA calls

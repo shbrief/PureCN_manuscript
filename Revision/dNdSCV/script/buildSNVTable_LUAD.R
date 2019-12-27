@@ -6,8 +6,12 @@
 # a list of SampleID, which has '_variants.csv' output
 sample_dir = list.files(data_dir)
 file_list = sapply(sample_dir, function(x) list.files(file.path(data_dir, x)))
-mut = sapply(file_list, function(x) x[grep("*_variants.csv$", x)])
-mut = sapply(file_list, function(x) x[grep("*.rds$", x)])
+
+if (runtype == "tumor_only") {
+    mut = sapply(file_list, function(x) x[grep("*.rds$", x)])
+} else if (runtype == "matching_normal") {
+    mut = sapply(file_list, function(x) x[grep("*_variants.csv$", x)])
+}
 
 # subset the 442 samples used in the paper
 source("~/Documents/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
@@ -17,26 +21,22 @@ mut = mut[sub_ind]
 
 ##### SNV table in a dNdSCV input format #######################################
 source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/rescale_priors.R")
-vcf = readRDS("~/data2/PureCN_manuscript/Revision/dNdSCV/data/COSMIC_hotspot.rds")
+vcf_all = readVcf("~/data2/PureCN_manuscript/Revision/dNdSCV/data/CosmicCodingMuts.vcf.bgz", "hg38")
+vcf = vcf_all[info(vcf_all)$CNT >= 20 & !info(vcf_all)$SNP]
+seqlevelsStyle(vcf) = "UCSC"
 
 snv_list = list()
 for (i in seq_along(mut)) {
-    # p <- predictSomatic output
-    # p = read.csv(file.path(data_dir, names(mut[i]), mut[[i]]))
-    x = readCurationFile(file.path(data_dir, names(mut[i]), mut[[i]]))
     
-    # # make GRanges from PureCN SNV calls
-    # df = data.frame(chr = gsub("chr","",p$chr), start = p$start, end = p$end)
-    # grl = makeGRangesFromDataFrame(df)
-    # # find the overlaps b/w PureCN calls and COSMIC
-    # hotspot_snv = readRDS("~/data2/PureCN_manuscript/Revision/dNdSCV/data/COSMIC_hotspot.rds")
-    # ol = findOverlaps(grl, hotspot_snv, ignore.strand = TRUE)
-    # # keep the COSMIC hotspots, which will be added later
-    # hotspots = p[queryHits(ol),]
-    
-    p = rescale_overlaps(x, vcf)
-    p_old = predictSomatic(x)
-    p = data.frame(Sampleid = x$input$sampleid, p)
+    if (runtype == "matching_normal") {
+        p = read.csv(file.path(data_dir, names(mut[i]), mut[[i]]))
+    } else if (runtype == "tumor_only") {
+        # rescale prior
+        x = readCurationFile(file.path(data_dir, names(mut[i]), mut[[i]]))
+        p = rescale_overlaps(x, vcf)
+        p_old = predictSomatic(x)
+        p = data.frame(Sampleid = x$input$sampleid, p)
+    }
     
     # remove variants in germline databases
     min.prior.somatic = 0.1 
@@ -59,7 +59,7 @@ for (i in seq_along(mut)) {
     snv_list[[names(mut[i])]] = snv_table_sub
 }
 
-saveRDS(snv_list, file = file.path(out_dir, "data", paste0("LUAD_mutTable_", runtype, ".rds")))
+saveRDS(snv_list, file = file.path(out_dir, "data", paste0("LUAD_mutTable_", runtype, "_rescalePriors.rds")))
 
 # out_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
 # snv_list = readRDS(file.path(out_dir, paste0("luad_snv", runtype, ".rds")))

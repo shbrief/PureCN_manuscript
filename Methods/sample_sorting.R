@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # Load manifest file
-manifest = readRDS("~/wallabe4_backup/github/PureCN_manuscript_backup/Data/ovc_manifest/ovc_manifest_112618.rds")
+manifest = readRDS("~/data2/PureCN_manuscript/Data/manifest/ovc_manifest_112618.rds")
 
 # Subset manifest with only one bedfile
 bedfiles = manifest$bedfiles
@@ -20,4 +20,4 @@ manifest_n = manifest[manifest$sample_definition %in%
 manifest_t = manifest[manifest$sample_definition %in% 
                         c("Primary Solid Tumor", "Recurrent Solid Tumor"),]
 
-if (exists("run_type")) {source("~/wallabe4_backup/github/PureCN_manuscript_backup/Methods/run_type.R")}
+if (exists("run_type")) {source("~/data2/PureCN_manuscript/Methods/run_type.R")}
