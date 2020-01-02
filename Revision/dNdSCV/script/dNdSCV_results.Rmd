@@ -62,7 +62,7 @@ are removed in the prior.somatic filtering process. We decided to do 'quick and 
 fix of it, by adding COSMIC SNVs with CNT >= 20
 
 
-```{r}
+```{r eval=TRUE}
 # FDR filtering
 runtype = "tumor_only"
 dnds_out_dir = file.path("/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/LUAD", runtype)
@@ -75,7 +75,7 @@ t = t_all$sel_cv[,c("gene_name", "qglobal_cv")]
 m = m_all$sel_cv[,c("gene_name", "qglobal_cv")]
 ```
 
-```{r}
+```{r eval=TRUE}
 # signif_dir = "/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/LUAD"
 # t = read.csv(file.path(signif_dir, "tumor_only/signif_genes_LUAD_tumor_only_rescalePriors.csv"))[,-1]
 # m = read.csv(file.path(signif_dir, "matching_normal/ML_SOMATIC_FILTER/signif_genes_LUAD_matching_normal.csv"))[,-1]
@@ -84,27 +84,29 @@ colnames(t)[2] = "qglobal_cv_tumorOnly"
 colnames(m)[2] = "qglobal_cv_matchingN"
 
 all = merge(t, m, by = "gene_name")
-write.csv(all, "~/data2/PureCN_manuscript/Revision/dNdSCV/data/qgloba_cv_all.csv")
+# write.csv(all, "~/data2/PureCN_manuscript/Revision/dNdSCV/data/qgloba_cv_all.csv")
 ```
 
 ### Summary Table
-```{r message=FALSE}
+```{r message=FALSE, eval=TRUE}
 # summary = dplyr::full_join(t, m)
 # colnames(summary) = c("Gene", "Tumor only", "Matching normal")
 # summary
 
-sub = all[which(all$qglobal_cv_tumorOnly < 0.01 | all$qglobal_cv_matchingN < 0.01),]
+FDRcutoff = 0.01
+sub = all[which(all$qglobal_cv_tumorOnly < FDRcutoff | all$qglobal_cv_matchingN < FDRcutoff),]
 colnames(sub) = c("Gene", "Tumor only", "Matching normal")
-sub
 ```
 
-```{r echo=FALSE, eval=FALSE}
+```{r echo=FALSE, eval=TRUE}
 sub = sub[,c("Gene", "Matching normal", "Tumor only")]
 sub = sub[order(sub$`Matching normal`),]
-write.csv(sub, file = "~/data2/PureCN_manuscript/Revision/dNdSCV/data/SignificantGenes.csv")
+sub
+
+# write.csv(sub, file = "~/data2/PureCN_manuscript/Revision/dNdSCV/data/SignificantGenes.csv")
 ```
 
-```{r}
+```{r eval=TRUE}
 FDRcutoff = 0.01
 t_sig = t[which(t$qglobal_cv_tumorOnly < FDRcutoff),]
 m_sig = m[which(t$qglobal_cv_tumorOnly < FDRcutoff),]
@@ -113,7 +115,7 @@ all_sig = merge(t_sig, m_sig, by = "gene_name")
 ```
 
 ### Venn Diagram
-```{r fig.width=4.5, fig.height=4.5}
+```{r fig.width=4.5, fig.height=4.5, eval=TRUE}
 library(VennDiagram)
 
 grid.newpage()
@@ -129,7 +131,7 @@ draw.pairwise.venn(area1 = nrow(m_sig),
 ```
 
 ### Cancer Genes
-```{r fig.height=4.5, fig.width=4.5}
+```{r fig.height=4.5, fig.width=4.5, eval=TRUE}
 plot(x = -log(all_sig$qglobal_cv_matchingN), 
      y = -log(all_sig$qglobal_cv_tumorOnly),
      main = "Cancer Genes in LUAD (-log(q-value))",

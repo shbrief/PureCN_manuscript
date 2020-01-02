@@ -171,3 +171,63 @@ out_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
 saveRDS(luad_loh_all, file = file.path(out_dir, "Fig1F.luad_loh_all.rds"))
 ```
 
+```{r eval=TRUE, echo=FALSE}
+loh_summary = readRDS("~/data2/PureCN_manuscript/Revision/LOH/data/LUAD_LOH_summary.rds")
+discordant = sapply(loh_summary, function(x) {sum(x$loh.pcn == "2-1" & x$loh.abs == "2-2")})
+discordant_sampleId = names(which(discordant != 0))
+loh_summary[discordant_sampleId] = NULL
+
+test = data.frame()
+for (i in seq_along(loh_summary)) {test = rbind(test, loh_summary[[i]])}
+unique_abs = unique(test$loh.abs) %>% as.character() %>% sort
+unique_pcn = unique(test$loh.pcn) %>% as.character() %>% sort
+
+t = as.data.frame(matrix(NA,
+                         nrow=length(unique_abs),
+                         ncol=length(unique_pcn)))
+rownames(t) = unique_abs
+colnames(t) = unique_pcn
+for (i in unique_abs) {
+    for (j in unique_pcn) {
+        t[i,j] = sum(test$loh.abs == i & test$loh.pcn == j)
+    }
+}
+
+t2 = as.data.frame(matrix(NA,
+                         nrow=length(unique_abs)*length(unique_pcn),
+                         ncol=3))
+colnames(t2) = c("loh.abs", "loh.pcn", "num")
+t2$loh.abs = rep(unique_abs, each = length(unique_pcn))
+t2$loh.pcn = rep(unique_pcn, length(unique_abs))
+
+for (i in unique_abs) {
+    for (j in unique_pcn) {
+        ind = which(t2$loh.abs == i & t2$loh.pcn == j)
+        t2$num[ind] = t[i,j]
+    }
+}
+
+# subset the table only with the LOH combination detected in ABSOLUTE
+t2 = t2[which(t2$loh.pcn %in% unique_abs),]
+
+# figure styling
+source("~/data2/PureCN_manuscript/Figures/manuscript_figure_style.R")
+
+luad_loh_all = ggplot(t2, aes(x = loh.abs, y = loh.pcn)) +   # 30,335 data points
+    geom_point(aes(size = num), alpha = 0.5, show.legend = FALSE) +
+    geom_text(aes(label = num), col = "white", size = 3) +
+    # scale_color_manual(values = c("#00AFBB", "#E7B800", "#FC4E07")) +
+    scale_size(range = c(0.5, 25)) +
+    ggtitle("F. TCGA-LUAD: Integer Copy Number") +
+    xlab("SNP6 array (ABSOLUTE)") + ylab("Tumor WES (PureCN)") +
+    customPlot
+```
+
+```{r fig.width=5, fig.height=5, eval=TRUE}
+luad_loh_all
+
+out_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
+saveRDS(luad_loh_all, file = file.path(out_dir, "Fig1F.luad_loh_all_v2.rds"))
+```
+
+

@@ -48,7 +48,8 @@ F1C = readRDS(file.path(data_dir, "Fig1C.luad_puri.rds"))
 F1D = readRDS(file.path(data_dir, "Fig1D.luad_ploi.rds"))
 
 F1E = readRDS(file.path(data_dir, "Fig1E.ovc_loh_all.rds"))
-F1F = readRDS(file.path(data_dir, "Fig1F.luad_loh_all.rds"))
+# F1F = readRDS(file.path(data_dir, "Fig1F.luad_loh_all.rds"))
+F1F = readRDS(file.path(data_dir, "Fig1F.luad_loh_all_v2.rds"))
 
 F1G = readRDS(file.path(data_dir, "Fig1G.ovc_loh.rds"))
 F1H = readRDS(file.path(data_dir, "Fig1H.luad_loh.rds"))
