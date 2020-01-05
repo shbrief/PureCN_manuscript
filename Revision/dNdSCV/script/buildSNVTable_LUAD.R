@@ -8,7 +8,8 @@ sample_dir = list.files(data_dir)
 file_list = sapply(sample_dir, function(x) list.files(file.path(data_dir, x)))
 
 if (runtype == "tumor_only") {
-    mut = sapply(file_list, function(x) x[grep("*.rds$", x)])
+    # mut = sapply(file_list, function(x) x[grep("*.rds$", x)])
+    mut = sapply(file_list, function(x) x[grep("*_variants.csv$", x)])
 } else if (runtype == "matching_normal") {
     mut = sapply(file_list, function(x) x[grep("*_variants.csv$", x)])
 }

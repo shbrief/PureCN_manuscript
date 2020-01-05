@@ -1,0 +1,117 @@
+---
+title: "Untitled"
+author: "Sehyun Oh"
+date: "1/4/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+suppressPackageStartupMessages({
+    library(dplyr)
+    library(Homo.sapiens)
+    library(rtracklayer)
+    library(VariantAnnotation)
+})
+```
+
+## All the normal VCFs
+```{r}
+MUTECT_OUT = file.path("/nobackup/16tb_a/CNVworkflow_LUAD/mutect_output")
+out.dir = file.path(MUTECT_OUT, "normal_panel")
+pon_size = 250
+
+file_path = dir(out.dir, pattern="^.*_pon_no_none\\.vcf$", full.names = TRUE)[1: pon_size]
+```
+
+## Significant genes from tumor-only
+```{r}
+dndscv_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
+sig_genes = read.table(file.path(dndscv_dir, "data/SignificantGenes.csv"), sep = ",", header = TRUE)
+t_ind = which(sig_genes$Tumor.only < 0.01)
+sig_genes_t = sig_genes$Gene[t_ind] %>% as.character
+sig_genes_t
+```
+
+## GRanges of significant genes
+```{r}
+g = genes(Homo.sapiens, columns = "SYMBOL")
+g_sig_genes_t = subset(g, SYMBOL %in% sig_genes_t)
+g_sig_genes_t
+
+bedfiles.dir = "/home/sehyun/reference/bedfiles"
+ch = import.chain(file.path(bedfiles.dir, "hg19ToHg38.over.chain"))
+g_sig_genes_t_hg38 = liftOver(g_sig_genes_t, ch) %>% unlist
+g_sig_genes_t_hg38
+```
+
+## Find SNPs in normal VCFs
+```{r eval=FALSE}
+snp_gr = list()
+for (i in seq_along(file_path)) {
+    
+    vcf = readVcf(file_path[i], "hg38")   # import VCF file
+    snp = rowRanges(vcf)   # Convert normal VCFs to GRange
+    
+    ol = findOverlaps(snp, g_sig_genes_t_hg38)   # overlapping region
+    # ol_ind = unique(subjectHits(ol))   # index of overlapping region in significantGenes_tumor
+    # snp_gene = unique(g_sig_genes_t_hg38$SYMBOL[ol_ind] %>% unlist)   # significantGenes with SNP in normal sample
+    ol_ind = queryHits(ol)   # SNPs in significantGenes_tumor
+    snps = snp[ol_ind,]
+    sample_name = stringr::str_extract(file_path[i], "TCGA.{21}")
+    
+    df = data.frame(seqnames = seqnames(snps), start = start(snps), sample = 1)
+    snp_gr[[sample_name]] = df
+}
+```
+
+```{r eval=FALSE}
+saveRDS(snp_gr, file.path(dndscv_dir, "data/snpFromNormalVCFs.rds"))
+```
+
+## Summarize SNPs
+```{r}
+df = snp_gr[[1]]
+colnames(df)[3] = names(snp_gr[1])
+
+for (i in 2:length(snp_gr)) {
+    new_df = snp_gr[[i]]
+    colnames(new_df)[3] = names(snp_gr[i])
+    df = dplyr::full_join(df, new_df, by = c("seqnames", "start"))
+}
+```
+
+The number of samples containing each SNP
+```{r}
+numSamples = rowSums(df[,3:ncol(df)], na.rm = TRUE)
+hist(numSamples, breaks = seq(0,250,5))
+abline(v = 5, col = "red")
+```
+
+```{r}
+sum(numSamples < 5)
+```
+
+
+
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+snp_gr = readRDS(file.path(dndscv_dir, "data/snpFromNormalVCFs.rds"))
+table(sapply(snp_gr, function(x) {length(x)}))
+
+
+all_SNP = as.data.frame(matrix(NA, ncol = length(sig_genes_t)+1))
+colnames(all_SNP) = c("sampleID", sig_genes_t)
+
+for (i in seq_along(snp_gr)) {
+    x = table(snp_gr[i])
+    x$sampleID = names(snp_gr[i])
+    all_SNP = dplyr::bind_rows(all_SNP, x)
+}
+
+all_SNP = all_SNP[-1,]
+colSums(all_SNP[,-1], na.rm = TRUE)
+```

@@ -150,7 +150,7 @@ SF2D = readRDS(file.path(data_dir, "SFig2D.luad_ploi.rds"))
 * File under `~/data2/PureCN_manuscript/Figures`   
     + SF3: `manuscript_concordance_plot.Rmd`
 ```{r fig.width=8, fig.height= 5}
-data_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures"
+data_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
 
 SF3 = readRDS(file.path(data_dir, "SFig3.concordance.rds"))
 SF3

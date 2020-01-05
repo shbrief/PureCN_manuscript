@@ -46,9 +46,63 @@ rm(TMB_purecn)
 ```
 
 ```{r}
+TMB_OV$Sampleid = stringr::str_extract(TMB_OV$sampleID, "TCGA.{11}")
+TMB_AR_OV = read.csv("~/data2/PureCN_manuscript/Revision/TMB_AR/data/TMB_AR_OVC.csv")[,-1]
+
+TMB_OV = dplyr::left_join(TMB_OV, TMB_AR_OV[,c("Sampleid", "TMB.AR")], by = "Sampleid")
+TMB_OV = TMB_OV[,c("sampleID", "TMB_tumor", "TMB_paired", "TMB.AR")]
+
+TMB_LUAD$Sampleid = stringr::str_extract(TMB_LUAD$sampleID, "TCGA.{11}")
+TMB_AR_LUAD = read.csv("~/data2/PureCN_manuscript/Revision/TMB_AR/data/TMB_AR_LUAD.csv")[,-1]
+
+TMB_LUAD = dplyr::left_join(TMB_LUAD, TMB_AR_LUAD[,c("Sampleid", "TMB.AR")], by = "Sampleid")
+TMB_LUAD = TMB_LUAD[,c("sampleID", "TMB_tumor", "TMB_paired", "TMB.AR")]
+```
+
+```{r}
 TMB_OV$Sample = "OV"
 TMB_LUAD$Sample = "LUAD"
 TMB_purecn = rbind(TMB_LUAD, TMB_OV)
+```
+
+
+
+```{r}
+TMB_OV_meanAbsDiff_1 = mean(abs(TMB_OV$TMB_paired - TMB_OV$TMB_tumor), na.rm=TRUE)
+TMB_OV_meanAbsDiff_2 = mean(abs(TMB_OV$TMB_paired - TMB_OV$TMB.AR), na.rm=TRUE) 
+
+TMB_LUAD_meanAbsDiff_1 = mean(abs(TMB_LUAD$TMB_paired - TMB_LUAD$TMB_tumor), na.rm=TRUE)
+TMB_LUAD_meanAbsDiff_2 = mean(abs(TMB_LUAD$TMB_paired - TMB_LUAD$TMB.AR), na.rm=TRUE) 
+```
+
+```{r}
+TMB_meanAbsDiff = as.data.frame(matrix(NA, nrow = 2, ncol = 3))
+colnames(TMB_meanAbsDiff) = c("somatic.rate measure", "OV", "LUAD")
+
+TMB_meanAbsDiff[,1] = c("Mean Absolute Difference", "Mean Absolute Difference (simplified)")
+TMB_meanAbsDiff[,2] = c(TMB_OV_meanAbsDiff_1, TMB_OV_meanAbsDiff_2)
+TMB_meanAbsDiff[,3] = c(TMB_LUAD_meanAbsDiff_1, TMB_LUAD_meanAbsDiff_2)
+
+TMB_meanAbsDiff
+```
+
+
+```{r}
+library(openxlsx)
+
+# Create a blank workbook
+OUT = createWorkbook()
+
+# Add some sheets to the workbook
+addWorksheet(OUT, "TMB table")
+addWorksheet(OUT, "TMB summary")
+
+# Write the data to the sheets
+writeData(OUT, sheet = "TMB table", x = TMB_purecn)
+writeData(OUT, sheet = "TMB summary", x = TMB_meanAbsDiff)
+
+# Export the file
+saveWorkbook(OUT, "Table5_TMB.xlsx")
 ```
 
 ```{r eval=FALSE}

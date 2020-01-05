@@ -1,7 +1,7 @@
 #!/usr/bin/env Rscript
 
 # figure styling
-source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/manuscript_figure_style.R")
+source("~/data2/PureCN_manuscript/Figures/manuscript_figure_style.R")
 
 if (plot_for == "purity") {
   customPlot = c(customPlot, 

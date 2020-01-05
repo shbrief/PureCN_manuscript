@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 
 ## Supplmentary Table 1. Purity and Ploidy
 ```{r echo=FALSE}
-data_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Tables"
+data_dir = "~/data2/PureCN_manuscript/Figures/Final_Tables"
 table_1 = read.csv(file.path(data_dir, "Table1_puri_ploi.csv"))[,-1]
 ```
 
@@ -138,3 +138,13 @@ sum(LUAD_mutSig$Mode == "Paired")
 ```{r}
 tail(table_6, 3)
 ```
+
+## Supplmentary Table 7. Significant Genes from dNdSCV
+From `~/data2/PureCN_manuscript/Revision/dNdSCV/script/dNdSCV_results.Rmd`
+
+```{r}
+table_7 = read.table(file.path(data_dir, "Table7_dNdSCV_SignificantGenes.csv"), sep = ",", header = TRUE)
+dim(table_7)
+head(table_7)
+```
+

@@ -17,10 +17,10 @@ knitr::opts_chunk$set(echo=FALSE, message=FALSE, warning=FALSE, eval=FALSE)
 ```
 
 
-
-# Check KRAS 
-Extract KRAS status
 ```{r eval=FALSE}
+# Check KRAS 
+# Extract KRAS status
+
 i = 1
 runtype = c("tumor_only", "matching_normal")[i]
 data_dir = file.path("/nobackup/16tb_a/CNVworkflow_LUAD/purecn_output/PureCN", runtype)
@@ -55,11 +55,11 @@ kras_m = read.csv(file.path(out_dir, "data/KRAS_matching_normal.csv"))[-1,-1]
 
 
 
-# Filter with ML.SOMATIC
+# Rescaling and Filtering
 **Significant genes in tumor-only**   
-Because I didn't used COSMIC VCF fils (COSMIC.CNT) for PureCN run, many SNVs in dbSNP 
-are removed in the prior.somatic filtering process. We decided to do 'quick and dirty' 
-fix of it, by adding COSMIC SNVs with CNT >= 20
+Because I didn't use COSMIC VCF fils (COSMIC.CNT) for PureCN run, many SNVs in dbSNP 
+were removed in the prior.somatic filtering process. Here, as a 'quick and dirty' fix,
+we tried rescaling (`~/data2/PureCN_manuscript/Revision/dNdSCV/script/rescale_priors.R`). 
 
 
 ```{r eval=TRUE}
@@ -87,7 +87,9 @@ all = merge(t, m, by = "gene_name")
 # write.csv(all, "~/data2/PureCN_manuscript/Revision/dNdSCV/data/qgloba_cv_all.csv")
 ```
 
-### Summary Table
+# Summary Table
+## All the significant genes
+Passed the FDR < 0.01 from tumor-only or mathing-normal analyses.
 ```{r message=FALSE, eval=TRUE}
 # summary = dplyr::full_join(t, m)
 # colnames(summary) = c("Gene", "Tumor only", "Matching normal")
@@ -102,9 +104,15 @@ colnames(sub) = c("Gene", "Tumor only", "Matching normal")
 sub = sub[,c("Gene", "Matching normal", "Tumor only")]
 sub = sub[order(sub$`Matching normal`),]
 sub
-
-# write.csv(sub, file = "~/data2/PureCN_manuscript/Revision/dNdSCV/data/SignificantGenes.csv")
 ```
+
+```{r eval=FALSE}
+# write.csv(sub, file = "~/data2/PureCN_manuscript/Revision/dNdSCV/data/SignificantGenes.csv")
+write.csv(sub, file = "~/data2/PureCN_manuscript/Figures/Final_Tables/Table7_dNdSCV_SignificantGenes.csv", row.names = FALSE)
+```
+
+## Mutually called significant genes
+Passed the FDR < 0.01 from **both** tumor-only and mathing-normal analyses.
 
 ```{r eval=TRUE}
 FDRcutoff = 0.01
@@ -114,7 +122,7 @@ dplyr::inner_join(t_sig, m_sig, by = "gene_name")
 all_sig = merge(t_sig, m_sig, by = "gene_name")
 ```
 
-### Venn Diagram
+# Venn Diagram
 ```{r fig.width=4.5, fig.height=4.5, eval=TRUE}
 library(VennDiagram)
 
@@ -130,7 +138,7 @@ draw.pairwise.venn(area1 = nrow(m_sig),
                    cat.dist = rep(0.025, 2))
 ```
 
-### Cancer Genes
+# Cancer Genes
 ```{r fig.height=4.5, fig.width=4.5, eval=TRUE}
 plot(x = -log(all_sig$qglobal_cv_matchingN), 
      y = -log(all_sig$qglobal_cv_tumorOnly),

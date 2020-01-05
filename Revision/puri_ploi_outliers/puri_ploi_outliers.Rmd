@@ -1,5 +1,5 @@
 ---
-title: "PureCN paper revision"
+title: "Revision: Purity and Ploidy Outliers"
 author: "Sehyun Oh"
 date: "`r Sys.Date()`"
 output:
@@ -12,8 +12,7 @@ vignette: >
   % \VignetteEngine{knitr::rmarkdown}
 ---
 
-# Setup
-```{r, echo=FALSE, results="hide", warning=FALSE}
+```{r setup, echo=FALSE, results="hide", warning=FALSE}
 suppressPackageStartupMessages({
   library(ggplot2)
   library(cowplot)
@@ -21,150 +20,184 @@ suppressPackageStartupMessages({
 })
 ```
 
+# OVC tumor-only mode
+## Load data
+```{r}
+script_dir = "~/data2/PureCN_manuscript"
+results_dir = file.path(script_dir, "Results/purity_ploidy")
+purecn_puri_ploi = readRDS(file.path(results_dir, "data/ABS_w_tumor_only.rds"))
+
+source("~/Documents/github/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
+purecn_puri_ploi = purecn_puri_ploi[which(purecn_puri_ploi$SampleId %in% ovc_236),]
+```
+
+## Ploidy outliers
+```{r outlier_percentage, echo=FALSE, eval=FALSE}
+df = purecn_puri_ploi
+x = df$Ploidy_ABS
+y = df$Ploidy_tumor_only
+
+absdiff <- abs(x - y)
+ind <- order(absdiff)
+fract <- 0.8
+length.out <- round(fract * length(absdiff))
+fract.grid <- ind[seq_len(length.out)]
+```
+
+```{r outlier_cutoff, echo=FALSE}
+df = purecn_puri_ploi
+x = df$Ploidy_ABS
+y = df$Ploidy_tumor_only
+
+absdiff <- abs(x - y)
+fract.grid <- which(absdiff < 0.5)
+```
+
+Ploidy-concordant samples with the absolute ploidy difference less than 0.5, are 
+marked in red and the others are colored in cyan. Pearson correlation on upper-left
+side is calculated only with the concordant samples.
+
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+df$absdiff = "discordant"
+df$absdiff[fract.grid] = "concordant"
+df_ploi = df
+
+x = "Ploidy_ABS"
+y = "Ploidy_tumor_only"
+plot_for = "ploidy"
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "B. TCGA-OV Ploidy") 
+
+source("~/data2/PureCN_manuscript/Revision/revision_figure.R")
+tumor_ploid = final_plot
+rm(final_plot)
+
+tumor_ploid
+```
+
+
+```{r echo=FALSE, fig.width = 7, fig.height = 4.5, eval=FALSE}
+# ## Purity of ploidy outliers
+# **[Left]** Purity of PureCN and ABSOLUTE results from ploidy-discordant samples 
+# (the cyan dots from the above plot) are plotted. 
+# **[Right]** Purity of PureCN and ABSOLUTE results from the ploidy-concordant samples.  
+
+df = df[which(df$absdiff == "discordant"),]
+x = "Purity_ABS"
+y = "Purity_tumor_only"
+plot_for = "purity"
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "TCGA-OV Purity \n of discordant Ploidy")
+
+source("~/data2/PureCN_manuscript/Figures/manuscript_figure.R")
+discordant_puri = final_plot
+rm(final_plot)
+
+df = df_ploi
+df = df[which(df$absdiff == "concordant"),]
+x = "Purity_ABS"
+y = "Purity_tumor_only"
+plot_for = "purity"
+customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
+                  y = "Tumor WES (PureCN)", 
+                  title = "TCGA-OV Purity \n of cordant Ploidy")
+
+source("~/data2/PureCN_manuscript/Figures/manuscript_figure.R")
+concordant_puri = final_plot
+rm(final_plot)
+
+discordant_puri | concordant_puri
+```
+
+```{r import_OV_QC, echo=FALSE}
+catalogs = c("931070", "S0293689")
+
+for (catalog in catalogs) {
+    out_dir = file.path("/nobackup/16tb_b/CNVworkflow/", catalog, "purecn_output")
+    data_dir = file.path(out_dir, paste0(catalog, "_tumor_cov"))
+    fname_all = list.files(data_dir)
+    fname_ind = grep("_coverage_loess_qc.txt", fname_all)
+    fname = fname_all[fname_ind]
+    
+    colNames = colnames(read.table(file.path(data_dir, fname[1]), header = TRUE))
+    QC = as.data.frame(matrix(NA, ncol = length(colNames)+1))
+    colnames(QC) = c("SampleId", colNames)
+    
+    for (x in fname) {
+        p = read.table(file.path(data_dir, x), header = TRUE)
+        p$SampleId = x
+        QC = rbind(QC, p)
+    }
+    assign(paste0("QC_", catalog), QC[-1,])
+}
+```
+
+```{r echo=FALSE}
+library(magrittr)
+p = QC_S0293689$SampleId %>% gsub("_coverage_loess_qc.txt", "", .)
+
+# match filenames with sample names
+mani = read.table("~/data2/PureCN_manuscript/Data/manifest/ovc_manifest.tsv")
+x = as.data.frame(matrix(NA, nrow = length(p), ncol=3))
+colnames(x) = c("file_name", "barcode", "sample_name")
+x$file_name = p
+for (i in 1:nrow(x)) {
+    y = x$file_name[i]
+    if (!identical(y, "character(0)")) {
+        z = mani$barcode[which(gsub(".bam", "",mani$filename) == y)]
+        x$barcode[i] = as.character(z)
+        x$sample_name[i] = stringr::str_extract(x$barcode[i], "TCGA.{11}")
+    } else {
+        next
+    }
+}
+
+QC_931070$SampleId = stringr::str_extract(QC_931070$SampleId, "TCGA.{11}")
+QC_S0293689$SampleId = x$sample_name
+```
+
+```{r echo=FALSE}
+QC_all = rbind(QC_931070, QC_S0293689)
+OV_all = dplyr::inner_join(df, QC_all, by = "SampleId")
+```
+
+```{r echo=FALSE}
+x = OV_all$Ploidy_ABS
+y = OV_all$Ploidy_tumor_only
+
+absdiff <- abs(x - y)
+fract.grid <- which(absdiff < 0.5)
+
+OV_all$absdiff = "discordant"
+OV_all$absdiff[fract.grid] = "concordant"
+```
+
+
+
+
+
+
+
+
 # LUAD tumor-only mode
 ## Load data
-Results from 442 samples are plotted (out of 507 tumor-only processed samples)
 ```{r}
-script_dir = "/home/sehyun/Documents/github/PureCN_manuscript"
+script_dir = "~/data2/PureCN_manuscript"
 results_dir = file.path(script_dir, "luad/Results/purity_ploidy")
 purecn_puri_ploi = readRDS(file.path(results_dir, "data/luad_ABS_w_tumor_only.rds"))
 
 # 442 obs. which have matched normal samples
 # paired = readRDS(file.path(results_dir, "data/luad_ABS_w_matching_normal.rds"))
-# write.csv(paired$fullname, "~/Documents/github/PureCN_manuscript/luad/Results/duplication/luad_442.csv")
-luad_442 = read.csv("~/Documents/github/PureCN_manuscript/luad/Results/duplication/luad_442.csv")[,2]  
+# write.csv(paired$fullname, "~/data2/PureCN_manuscript/luad/Results/duplication/luad_442.csv")
+luad_442 = read.csv("~/data2/PureCN_manuscript/luad/Results/duplication/luad_442.csv")[,2]  
 
 purecn_puri_ploi = purecn_puri_ploi[which(purecn_puri_ploi$fullname %in% luad_442),]
 ```
 
-## Purity and Ploidy Comparisons
-These are Figure 1C and 1D in the manuscript.
-```{r echo=FALSE}
-# Purity
-df = purecn_puri_ploi
-x = "Purity_ABS"
-y = "Purity_tumor_only"
-plot_for = "purity"
-customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
-                  y = "Tumor WES (PureCN)", 
-                  title = "C. TCGA-LUAD Purity") 
-source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
-tumor_puri = final_plot
-rm(final_plot)
-
-# Ploidy
-df = purecn_puri_ploi
-x = "Ploidy_ABS"
-y = "Ploidy_tumor_only"
-plot_for = "ploidy"
-customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
-                  y = "Tumor WES (PureCN)", 
-                  title = "D. TCGA-LUAD Ploidy") 
-source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
-tumor_ploi = final_plot
-rm(final_plot)
-```
-
-```{r echo=FALSE, fig.width = 7, fig.height = 4.5}
-tumor_puri | tumor_ploi
-```
-
-# Purity outliers
-```{r from_Ludwig, echo=FALSE, eval=FALSE}
-absdiff <- abs(x - y)
-ind <- order(absdiff)
-fract <- 0.8
-length.out <- round(fract * length(absdiff))
-fract.grid <- ind[seq_len(length.out)]
-plot(x[fract.grid], y[fract.grid])
-```
-
-Top 80% of purity-concordant samples are marked in red and the others are colored in cyan.
-If I calculate Pearson correlation only with the concordant samples, it give 0.98.
-
-```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
-df = purecn_puri_ploi
-x = df$Purity_ABS
-y = df$Purity_tumor_only
-
-absdiff <- abs(x - y)
-ind <- order(absdiff)
-fract <- 0.8
-length.out <- round(fract * length(absdiff))
-fract.grid <- ind[seq_len(length.out)]
-# plot(x[fract.grid], y[fract.grid])
-
-df$absdiff = "discordant"
-df$absdiff[fract.grid] = "concordant"
-df_puri = df
-
-x = "Purity_ABS"
-y = "Purity_tumor_only"
-plot_for = "purity"
-customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
-                  y = "Tumor WES (PureCN)", 
-                  title = "C. TCGA-LUAD Purity")
-
-source("~/data2/PureCN_manuscript/Revision/revision_figure.R")
-tumor_puri = final_plot
-rm(final_plot)
-
-tumor_puri
-```
-
-## Ploidy of purity outliers
-**[Left]** Ploidy of PureCN and ABSOLUTE results from 20% of purity-discordant
-samples (the cyan dots from the above plot) are plotted. Pearson correltation 
-coefficient is 0.19.     
-**[Right]** Ploidy of PureCN and ABSOLUTE results from the purity-concordant 
-samples. Pearson correltation coefficient is 0.65.     
-
-*--> So a wrong purity estimates lead to a wrong ploidy estimates?*
-
-```{r echo=FALSE, fig.width = 7, fig.height = 4.5}
-df = df[which(df$absdiff == "discordant"),]
-x = "Ploidy_ABS"
-y = "Ploidy_tumor_only"
-plot_for = "ploidy"
-customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
-                  y = "Tumor WES (PureCN)", 
-                  title = "TCGA-LUAD Ploidy \n of discordant Purity")
-
-source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
-discordant_ploi = final_plot
-rm(final_plot)
-
-
-df = df_puri
-df = df[which(df$absdiff == "concordant"),]
-x = "Ploidy_ABS"
-y = "Ploidy_tumor_only"
-plot_for = "ploidy"
-customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
-                  y = "Tumor WES (PureCN)", 
-                  title = "TCGA-LUAD Ploidy \n of cordant Purity")
-
-source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
-concordant_ploi = final_plot
-rm(final_plot)
-
-
-discordant_ploi | concordant_ploi
-```
-
-
-
-
-
-
-
-
-# Ploidy outliers
-
-Top 80% of ploidy-concordant samples are marked in red and the others are colored in cyan.
-If I calculate Pearson correlation only with the concordant samples, it give 0.97.
-
-```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
+## Ploidy outliers
+```{r echo=FALSE, eval=FALSE}
 df = purecn_puri_ploi
 x = df$Ploidy_ABS
 y = df$Ploidy_tumor_only
@@ -175,7 +208,23 @@ fract <- 0.8
 length.out <- round(fract * length(absdiff))
 fract.grid <- ind[seq_len(length.out)]
 # plot(x[fract.grid], y[fract.grid])
+```
 
+```{r echo=FALSE}
+df = purecn_puri_ploi
+x = df$Ploidy_ABS
+y = df$Ploidy_tumor_only
+
+absdiff <- abs(x - y)
+fract.grid <- which(absdiff < 0.5)
+```
+
+
+Ploidy-concordant samples with the absolute ploidy difference less than 0.5, are 
+marked in red and the others are colored in cyan. Pearson correlation on upper-left
+side is calculated only with the concordant samples.
+
+```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
 df$absdiff = "discordant"
 df$absdiff[fract.grid] = "concordant"
 df_ploi = df
@@ -195,16 +244,47 @@ tumor_ploid
 ```
 
 
+```{r import_LUAD_QC, echo=FALSE}
+data_dir = "/nobackup/16tb_a/CNVworkflow_LUAD/purecn_output/tumor_cov"
+fname_all = list.files(data_dir)
+fname_ind = grep("_coverage_loess_qc.txt", fname_all)
+fname = fname_all[fname_ind]
 
-## Purity of ploidy outliers
+colNames = colnames(read.table(file.path(data_dir, fname[1]), header = TRUE))
+QC = as.data.frame(matrix(NA, ncol = length(colNames)+1))
+colnames(QC) = c("SampleId", colNames)
 
-**[Left]** Purity of PureCN and ABSOLUTE results from 20% of ploidy-discordant
-samples (the cyan dots from the above plot) are plotted. Pearson correltation 
-coefficient is 0.69.       
-**[Right]** Purity of PureCN and ABSOLUTE results from the ploidy-concordant 
-samples. Pearson correltation coefficient is 0.87.    
+for (x in fname) {
+  p = read.table(file.path(data_dir, x), header = TRUE)
+  p$SampleId = stringr::str_extract(x, "TCGA.{11}")
+  QC = rbind(QC, p)
+}
 
-```{r echo=FALSE, fig.width = 7, fig.height = 4.5}
+QC = QC[-1,]
+```
+
+```{r echo=FALSE}
+LUAD_all = dplyr::inner_join(df, QC, by = "SampleId")
+```
+
+```{r echo=FALSE}
+x = LUAD_all$Ploidy_ABS
+y = LUAD_all$Ploidy_tumor_only
+
+absdiff <- abs(x - y)
+fract.grid <- which(absdiff < 0.5)
+
+LUAD_all$absdiff = "discordant"
+LUAD_all$absdiff[fract.grid] = "concordant"
+```
+
+
+```{r echo=FALSE, fig.width = 7, fig.height = 4.5, eval=FALSE}
+# ## Purity of ploidy outliers
+# **[Left]** Purity of PureCN and ABSOLUTE results from ploidy-discordant samples 
+# (the cyan dots from the above plot) are plotted. 
+# **[Right]** Purity of PureCN and ABSOLUTE results from the ploidy-concordant samples. 
+
 df = df[which(df$absdiff == "discordant"),]
 x = "Purity_ABS"
 y = "Purity_tumor_only"
@@ -213,7 +293,7 @@ customLabs = labs(x = "SNP6 array (ABSOLUTE)",
                   y = "Tumor WES (PureCN)", 
                   title = "TCGA-LUAD Purity \n of discordant Ploidy")
 
-source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
+source("~/data2/PureCN_manuscript/Figures/manuscript_figure.R")
 discordant_puri = final_plot
 rm(final_plot)
 
@@ -226,7 +306,7 @@ customLabs = labs(x = "SNP6 array (ABSOLUTE)",
                   y = "Tumor WES (PureCN)", 
                   title = "TCGA-LUAD Purity \n of cordant Ploidy")
 
-source("~/Documents/github/PureCN_manuscript/Figures/manuscript_figure.R")
+source("~/data2/PureCN_manuscript/Figures/manuscript_figure.R")
 concordant_puri = final_plot
 rm(final_plot)
 
@@ -235,72 +315,98 @@ discordant_puri | concordant_puri
 
 
 
-
-
-# Extreme cases (2%)
-## Purity outliers
-```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
-df = purecn_puri_ploi
-x = df$Purity_ABS
-y = df$Purity_tumor_only
-
-absdiff <- abs(x - y)
-ind <- order(absdiff, decreasing = TRUE)
-fract <- 0.02
-length.out <- round(fract * length(absdiff))
-fract.grid <- ind[seq_len(length.out)]
-
-df$absdiff = "concordant"
-df$absdiff[fract.grid] = "discordant"
-df_puri_outlier = df
-
-x = "Purity_ABS"
-y = "Purity_tumor_only"
-plot_for = "purity"
-customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
-                  y = "Tumor WES (PureCN)", 
-                  title = "TCGA-LUAD Purity Outlier")
-
-source("~/data2/PureCN_manuscript/Revision/revision_figure.R")
-final_plot
-```
-
+# Purity and Coverage
+## OVC 
+### Concordant
 ```{r}
-puriOutlierInd = which(df_puri_outlier$absdiff == "discordant")
-df_puri_outlier[puriOutlierInd,]
+selectedCol = c("Purity_tumor_only", "Ploidy_tumor_only", "mean.coverage.ontarget", "mean.duplication.ontarget")
+summary(OV_all[which(OV_all$absdiff == "concordant"),][selectedCol])
 ```
 
-
-
-
-## Ploidy outliers
-```{r echo=FALSE, fig.width = 5, fig.height = 4.5}
-df = purecn_puri_ploi
-x = df$Ploidy_ABS
-y = df$Ploidy_tumor_only
-
-absdiff <- abs(x - y)
-ind <- order(absdiff, decreasing = TRUE)
-fract <- 0.02
-length.out <- round(fract * length(absdiff))
-fract.grid <- ind[seq_len(length.out)]
-
-df$absdiff = "concordant"
-df$absdiff[fract.grid] = "discordant"
-df_ploi_outlier = df
-
-x = "Ploidy_ABS"
-y = "Ploidy_tumor_only"
-plot_for = "ploidy"
-customLabs = labs(x = "SNP6 array (ABSOLUTE)", 
-                  y = "Tumor WES (PureCN)", 
-                  title = "TCGA-LUAD Ploidy Outlier")
-
-source("~/data2/PureCN_manuscript/Revision/revision_figure.R")
-final_plot
-```
-
+### Discordant
 ```{r}
-ploiOutlierInd = which(df_ploi_outlier$absdiff == "discordant")
-df_ploi_outlier[ploiOutlierInd,]
+selectedCol = c("Purity_tumor_only", "Ploidy_tumor_only", "mean.coverage.ontarget", "mean.duplication.ontarget")
+summary(OV_all[which(OV_all$absdiff == "discordant"),][selectedCol])
+```
+
+## LUAD 
+### Concordant
+```{r}
+selectedCol = c("Purity_tumor_only", "Ploidy_tumor_only", "mean.coverage.ontarget", "mean.duplication.ontarget")
+summary(LUAD_all[which(LUAD_all$absdiff == "concordant"),][selectedCol])
+```
+
+### Discordant
+```{r}
+selectedCol = c("Purity_tumor_only", "Ploidy_tumor_only", "mean.coverage.ontarget", "mean.duplication.ontarget")
+summary(LUAD_all[which(LUAD_all$absdiff == "discordant"),][selectedCol])
+```
+
+
+# P-value
+Significance of purity and coverage differences between concordant vs. discordant 
+samples, where 'discordant' is defined as the ploidy difference >= 0.5.
+
+## Purity
+### OVC
+```{r}
+con_ind = which(OV_all$absdiff == "concordant")
+dis_ind = which(OV_all$absdiff == "discordant")
+
+wilcox.test(OV_all$Purity_tumor_only[con_ind],
+            OV_all$Purity_tumor_only[dis_ind])
+t.test(OV_all$Purity_tumor_only[con_ind], OV_all$Purity_tumor_only[dis_ind])
+```
+
+### LUAD
+```{r}
+con_ind = which(LUAD_all$absdiff == "concordant")
+dis_ind = which(LUAD_all$absdiff == "discordant")
+
+wilcox.test(LUAD_all$Purity_tumor_only[con_ind],
+            LUAD_all$Purity_tumor_only[dis_ind])
+t.test(LUAD_all$Purity_tumor_only[con_ind], LUAD_all$Purity_tumor_only[dis_ind])
+```
+
+### Both
+```{r}
+all = rbind(OV_all, LUAD_all)
+con_ind = which(all$absdiff == "concordant")
+dis_ind = which(all$absdiff == "discordant")
+
+wilcox.test(all$Purity_tumor_only[con_ind],
+            all$Purity_tumor_only[dis_ind])
+t.test(all$Purity_tumor_only[con_ind], all$Purity_tumor_only[dis_ind])
+```
+
+## Coverage
+### OVC
+```{r}
+con_ind = which(OV_all$absdiff == "concordant")
+dis_ind = which(OV_all$absdiff == "discordant")
+
+wilcox.test(OV_all$mean.coverage.ontarget[con_ind],
+            OV_all$mean.coverage.ontarget[dis_ind])
+t.test(OV_all$mean.coverage.ontarget[con_ind], OV_all$mean.coverage.ontarget[dis_ind])
+```
+
+### LUAD
+```{r}
+con_ind = which(LUAD_all$absdiff == "concordant")
+dis_ind = which(LUAD_all$absdiff == "discordant")
+
+wilcox.test(LUAD_all$mean.coverage.ontarget[con_ind],
+            LUAD_all$mean.coverage.ontarget[dis_ind])
+t.test(LUAD_all$mean.coverage.ontarget[con_ind], LUAD_all$mean.coverage.ontarget[dis_ind])
+```
+
+### Both
+```{r}
+all = rbind(OV_all, LUAD_all)
+con_ind = which(all$absdiff == "concordant")
+dis_ind = which(all$absdiff == "discordant")
+
+wilcox.test(all$mean.coverage.ontarget[con_ind],
+            all$mean.coverage.ontarget[dis_ind])
+t.test(all$mean.coverage.ontarget[con_ind], all$mean.coverage.ontarget[dis_ind])
 ```

@@ -3,13 +3,13 @@
 
 # input arguments ----------------------------------------------------------
 run_type = "normal"
-script_dir = "/home/sehyun/Documents/github/PureCN_manuscript/luad/Methods/"
+script_dir = "~/data2/PureCN_manuscript/luad/Methods/"
 source(file.path(script_dir, "luad_sample_sorting.R"))
 # --------------------------------------------------------------------------
 
 mutect.dir = "/home/lwaldron/mutect"
 ref.dir = "/home/sehyun/reference"
-MUTECT_OUT = file.path("/data/ovarian/CNVworkflow_LUAD/mutect_output")
+MUTECT_OUT = file.path("/nobackup/16tb_a/CNVworkflow_LUAD/mutect_output")
 out.dir = file.path(MUTECT_OUT, "normal_panel")
 
 java7.exec = "/usr/local/share/jre1.7.0_79/bin/java"

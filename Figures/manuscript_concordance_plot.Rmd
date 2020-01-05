@@ -31,7 +31,7 @@ library(ggplot2)
 ```
 
 ```{r}
-dat = read.csv("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Tables/Table1_puri_ploi.csv")[,-1]
+dat = read.csv("~/data2/PureCN_manuscript/Figures/Final_Tables/Table1_puri_ploi.csv")[,-1]
 ```
 
 ```{r}
@@ -196,6 +196,6 @@ concodance_plot = ggplot(data, aes(fill=condition, y=value, x = type, order = as
 ```{r fig.width=7.5, fig.height= 5}
 concodance_plot
  
-out_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures"
+out_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
 saveRDS(concodance_plot, file = file.path(out_dir, "SFig2.concordance.rds"))
 ```

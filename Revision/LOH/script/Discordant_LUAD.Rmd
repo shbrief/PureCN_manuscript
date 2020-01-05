@@ -1,0 +1,115 @@
+---
+title: "1027 discordant interger copy number in LUAD"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+**"2-1" from PureCN and "2-2" from ABSOLUTE**
+
+# SampleId
+```{r}
+loh_summary = readRDS("~/data2/PureCN_manuscript/Revision/LOH/data/LUAD_LOH_summary.rds")
+discordant = sapply(loh_summary, function(x) {sum(x$loh.pcn == "2-1" & x$loh.abs == "2-2")})
+discordant_sampleId = names(which(discordant != 0))
+discordant_sampleId
+discordant[discordant_sampleId]
+```
+
+
+
+# Purity-Ploidy summary
+```{r}
+puri_ploi = read.csv("~/data2/PureCN_manuscript/Figures/Final_Tables/Table1_puri_ploi.csv")[,-1]
+ind_pp = which(puri_ploi$SampleId %in% names(discordant[which(discordant != 0)]))
+puri_ploi[ind_pp,]
+```
+
+
+# Manifest
+```{r}
+luad_manifest_annot <- readRDS("~/data2/PureCN_manuscript/luad/luad_manifest_annot.rds")
+ind_m = which(stringr::str_extract(luad_manifest_annot$barcode, "TCGA.{11}") %in% names(discordant[which(discordant != 0)]))
+luad_manifest_annot[ind_m,]
+```
+
+
+
+```{r}
+loh_list_pcn = readRDS("~/data2/PureCN_manuscript/Revision/LOH/data/LOH_list_LUAD_purecn.rds")
+loh_list_abs = readRDS("~/data2/PureCN_manuscript/Revision/LOH/data/LOH_list_LUAD_abs.rds")
+luad_sampleId = discordant_sampleId
+    
+loh_summary = list()
+for (i in luad_sampleId) {
+    
+    overlap_ind = findOverlaps(loh_list_pcn[[i]], 
+                               loh_list_abs[[i]]) %>% as.data.frame
+    
+    for (j in seq_along(loh_list_abs[[i]])) {
+        queryHits_ind = overlap_ind[which(overlap_ind$subjectHits == j),]$queryHits
+        num_repeat = length(queryHits_ind)
+        sample_name = luad_sampleId[i]
+        loh_summary[[i]] = data.frame(loh.pcn = loh_list_pcn[[i]]$LOH[queryHits_ind],
+                                      loh.pcn.gene = loh_list_pcn[[i]]$gene.symbol[queryHits_ind],
+                                      loh.abs = rep(loh_list_abs[[i]]$LOH[j], num_repeat))
+    }
+}
+```
+
+
+```{r}
+discordant_genes = list()
+for (i in luad_sampleId) {
+    p = loh_summary[[i]]
+    ind = which(p$loh.pcn == "2-1" & p$loh.abs == "2-2")
+    discordant_genes[[i]] = p$loh.pcn.gene[ind]
+}
+```
+
+```{r}
+a = intersect(discordant_genes[[1]], discordant_genes[[2]])
+b = intersect(discordant_genes[[1]], discordant_genes[[3]]) 
+c = intersect(discordant_genes[[1]], discordant_genes[[4]]) 
+d = intersect(discordant_genes[[2]], discordant_genes[[3]]) 
+e = intersect(discordant_genes[[2]], discordant_genes[[4]]) 
+f = intersect(discordant_genes[[3]], discordant_genes[[4]]) 
+
+length(a)
+length(b)
+length(c)
+length(d)
+length(e)
+length(f)
+
+```
+
+```{r fig.height=5, fig.width=5}
+v.table = gplots::venn(discordant_genes[c(1,3,4)])
+```
+
+```{r}
+v.table
+```
+
+```{r}
+genes = attr(v.table,"intersections")$`TCGA-38-4632-01:TCGA-MP-A4T7-01:TCGA-MP-A4TF-01`
+
+q = loh_list_pcn[[luad_sampleId[1]]]
+ind = which(q$gene.symbol %in% genes)
+q[ind,]
+```
+
+```{r message=FALSE, warning=FALSE}
+library(ggbio)
+
+p.ideo = Ideogram(genome = "hg38")
+p.ideo
+p.ideo + xlim(GRanges("chr22", IRanges(24302229, 48707844)))
+```
+

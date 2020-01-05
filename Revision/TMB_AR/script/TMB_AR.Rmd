@@ -39,7 +39,7 @@ for (catalog in catalogs) {
 }
 ```
 
-```{r}
+```{r convert_S0293689_fname}
 p = TMB_AR_S0293689$Sampleid 
 
 # match filenames with sample names
