@@ -1,3 +1,10 @@
+# I didn’t provide cosmic.vcf.file for runAbsoluteCN. --> dbSNP contains known cancer
+# mutations. In tumor-only, when you provide a COSMIC VCF or a Cosmic.CNT info field 
+# in the VCF, it checks if a variant is in both COSMIC and dbSNP and handles it appropriately.
+# If only in dbSNP, it’s marked as likely germline and is ignored.
+
+
+# take the CNT filtered COSMIC VCF and re-sets the prior for all overlapping variants
 rescale_priors <- function(x, id, prior.somatic) {
     likelihoods.old <- x$results[[id]]$SNV.posterior$likelihood
     posteriors.old <- x$results[[id]]$SNV.posterior$posteriors

@@ -23,6 +23,7 @@ for (i in seq_along(snv_list)) {
 
 
 ##### Function to merge MNPs ###################################################
+# snv_list is a list of data.frames
 # remove sample with less than 3 SNVs and manually check them
 num_snv = sapply(snv_list, function(x) {nrow(x)})
 snv_ind = which(num_snv <= 3)

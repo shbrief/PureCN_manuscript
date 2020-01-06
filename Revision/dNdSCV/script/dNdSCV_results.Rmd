@@ -66,7 +66,8 @@ we tried rescaling (`~/data2/PureCN_manuscript/Revision/dNdSCV/script/rescale_pr
 # FDR filtering
 runtype = "tumor_only"
 dnds_out_dir = file.path("/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/LUAD", runtype)
-t_all = readRDS(file.path(dnds_out_dir, paste0("dndsout_LUAD_", runtype, "_rescalePriors.rds")))
+# t_all = readRDS(file.path(dnds_out_dir, paste0("dndsout_LUAD_", runtype, "_rescalePriors.rds")))
+t_all = readRDS(file.path(dnds_out_dir, paste0("dndsout_LUAD_", runtype, "_rescalePriors_PoNFiltered.rds")))
 runtype = "matching_normal"
 dnds_out_dir = file.path("/nobackup/16tb_b/CNVworkflow_revision/dNdSCV/outputs/LUAD", runtype)
 m_all = readRDS(file.path(dnds_out_dir,"ML_SOMATIC_FILTER", paste0("dndsout_LUAD_", runtype, ".rds")))
@@ -108,7 +109,7 @@ sub
 
 ```{r eval=FALSE}
 # write.csv(sub, file = "~/data2/PureCN_manuscript/Revision/dNdSCV/data/SignificantGenes.csv")
-write.csv(sub, file = "~/data2/PureCN_manuscript/Figures/Final_Tables/Table7_dNdSCV_SignificantGenes.csv", row.names = FALSE)
+write.csv(sub, file = "~/data2/PureCN_manuscript/Figures/Final_Tables/Table7_dNdSCV_SignificantGenes_PoNFiltered.csv", row.names = FALSE)
 ```
 
 ## Mutually called significant genes

@@ -65,6 +65,26 @@ if (runtype == "matching_normal") {
 names(snv_list) = stringr::str_extract(names(snv_list), "TCGA.{11}")
 ```
 
+## PoN filtered
+Checking if some of the false positives are found in the pool of normals (--> potentially
+sequencing artifacts)
+```{r Markus_script, eval=FALSE}
+source("/home/riestma1/pon.R")
+```
+
+```{r PoN_filtered}
+xx = readRDS("/home/riestma1/LUAD_pon.rds")
+x = xx[which(xx$pon.count < 5)]   # remove SNVs seen in >=5 in PoN
+
+snv_list_gr = split(x, x$Sampleid)   # split each sample into GRangesList
+snv_list = lapply(snv_list_gr, function(x) {data.frame(Sampleid = x$Sampleid,
+                                                       chr = seqnames(x),
+                                                       start = start(x),
+                                                       end = end(x),
+                                                       REF = x$REF,
+                                                       ALT = x$ALT)})
+```
+
 ## Format a list of SNV tables
 * Input: `snv_list`, which is a SNPs/MNPs table before formatting      
 * Output: `res`, which is a properly formatted SNPs/MNPs table, and potentially 
@@ -100,5 +120,5 @@ source("~/data2/PureCN_manuscript/Revision/dNdSCV/script/rundNdSCV.R")
 ```
 
 ```{r echo=FALSE, eval=FALSE}
-saveRDS(dndsout, file = file.path(dnds_out_dir, paste0("dndsout_LUAD_", runtype, "_rescalePriors.rds")))
+saveRDS(dndsout, file = file.path(dnds_out_dir, paste0("dndsout_LUAD_", runtype, "_rescalePriors_PoNFiltered.rds")))
 ```
