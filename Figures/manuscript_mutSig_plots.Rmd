@@ -20,18 +20,20 @@ knitr::opts_chunk$set(
 suppressPackageStartupMessages({
   library(dplyr)
   library(cowplot)
+  library(ggplot2)
 })
 ```
 
 ```{r}
 library(dplyr)
 library(cowplot)
+library(ggplot2)
 ```
 
 # Mutation Sinature Stacked Barplot
 ## Load mutSig and mut_count data
 ```{r}
-mutSig_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Results/mutSig"
+mutSig_dir = "/data2/PureCN_manuscript/Results/mutSig"
 mut_count = read.table(file.path(mutSig_dir, "extdata/mut_count.tsv"))
 
 sig_t = readRDS(file.path(mutSig_dir, "data/sig_all_tumor_only.rds"))
@@ -40,7 +42,7 @@ sig_p = readRDS(file.path(mutSig_dir, "data/sig_all_matching_normal.rds"))
 
 a list of non-dupicated samples
 ```{r}
-source("~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/non_dup.R")
+source("/data2/PureCN_manuscript/Figures/Final_Figures/non_dup.R")
 ```
 
 subset only non-duplicated samples
@@ -130,7 +132,7 @@ data = data.frame(condition, value = c(sig1_value, sig3_value), type)
 ```
 
 ```{r eval=FALSE}
-saveRDS(data, file = "~/wallabe4_backup/github/PureCN_manuscript_backup/Results/mutSig/data/ovc_mutSig.rds")
+saveRDS(data, file = "/data2/PureCN_manuscript/Results/mutSig/data/ovc_mutSig.rds")
 ```
 
 ```{r fig.width = 3, fig.height = 4.5}
@@ -155,19 +157,19 @@ ovc_mutSig_plot = ggplot(data, aes(fill=condition, y=value, x = type, order = as
         # legend.background = element_rect(fill = NA),
         plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")) +
   scale_y_continuous(labels = scales::percent) + ylab("Concordance") + 
-  scale_fill_manual(values = c("grey", "dark grey", "tomato", "red"))
+  scale_fill_manual(values = c("grey", "grey65", "tomato", "red"))
 
 ovc_mutSig_plot
 ```
 
 ```{r eval=FALSE}
-saveRDS(ovc_mutSig_plot, file = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/Fig3B.ovc_mutSig.rds")
+saveRDS(ovc_mutSig_plot, file = "/data2/PureCN_manuscript/Figures/Final_Figures/Fig3B.ovc_mutSig.rds")
 ```
 
 # Mutation Signature Plot with Merging Duplicates
 ## Load mutation counts
 ```{r}
-mutSig_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/Results/mutSig"
+mutSig_dir = "/data2/PureCN_manuscript/Results/mutSig"
 mut_count = read.table(file.path(mutSig_dir, "extdata/mut_count.tsv"))
 ```
 

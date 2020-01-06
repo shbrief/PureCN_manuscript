@@ -31,7 +31,7 @@ library(cowplot)
 # Mutation Sinature Stacked Barplot
 ## Load mutSig and mut_count data
 ```{r}
-data_dir = "~/wallabe4_backup/github/PureCN_manuscript_backup/luad/Results"
+data_dir = "/data2/PureCN_manuscript/luad/Results"
 mut_count = read.table(file.path(data_dir, "TMB/extdata/931070_mut_count.tsv"))
 names(mut_count)[1] = "SampleId"
 
@@ -221,13 +221,13 @@ luad_mutSig_plot = ggplot(data, aes(fill=condition, y=value, x = type, order = a
         # legend.text = element_text(size = 10, face = "bold"),
         plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm")) +
   scale_y_continuous(labels = scales::percent) + ylab("Concordance") + 
-  scale_fill_manual(values = c("grey", "dark grey", "tomato", "red"))
+  scale_fill_manual(values = c("grey", "grey65", "tomato", "red"))
 
 luad_mutSig_plot
 ```
 
 ```{r eval=FALSE}
-saveRDS(luad_mutSig_plot, file = "~/wallabe4_backup/github/PureCN_manuscript_backup/Figures/Final_Figures/Fig3C.luad_mutSig.rds")
+saveRDS(luad_mutSig_plot, file = "/data2/PureCN_manuscript/Figures/Final_Figures/Fig3C.luad_mutSig.rds")
 ```
 
 ```{r}

@@ -22,26 +22,28 @@ if (!"pathwork" %in% installed.packages())
 
 suppressPackageStartupMessages({
   library(patchwork)
+  library(pdftools)
 })
 ```
 
 ```{r}
 library(patchwork)
+library(pdftools)
 ```
 
 ## Figure 1
-* File under `~/data2/PureCN_manuscript/Figures`   
+* File under `/data2/PureCN_manuscript/Figures`   
     + F1A/B: `manuscript_puri_ploi.Rmd`
     + F1G: `manuscript_loh_t_plots.Rmd`
-* File under `~/data2/PureCN_manuscript/luad/Figures`
+* File under `/data2/PureCN_manuscript/luad/Figures`
     + F1C/D: `luad_manuscript_puri_ploi.Rmd`
     + F1H: `luad_manuscript_loh_t_plots.Rmd`
-* File under `~/data2/PureCN_manuscript/Revision/LOH/script`
+* File under `/data2/PureCN_manuscript/Revision/LOH/script`
     + F1E: `LOH_bubble_plot_OVC.Rmd`
     + F1F: `LOH_bubble_plot_LUAD.Rmd`
     
 ```{r}
-data_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
+data_dir = "/data2/PureCN_manuscript/Figures/Final_Figures"
 F1A = readRDS(file.path(data_dir, "Fig1A.ovc_puri.rds"))
 F1B = readRDS(file.path(data_dir, "Fig1B.ovc_ploi.rds"))
 F1C = readRDS(file.path(data_dir, "Fig1C.luad_puri.rds"))
@@ -69,14 +71,14 @@ F1G | F1H
 ```
 
 ## Figure 2
-* File under `~/data2/PureCN_manuscript/Figures`   
+* File under `/data2/PureCN_manuscript/Figures`   
     + F2A/E/F: `manuscript_benchmark_plots.Rmd`
     + F2C/D: `manuscript_benchmark_both.Rmd`
 * File under `/Users:/sehyunoh/wallabe4_backup/github/PureCN_manuscript/luad/Figures`
     + F2B/G/H: `luad_manuscript_benchmark_plots.Rmd`
 
 ```{r}
-data_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
+data_dir = "/data2/PureCN_manuscript/Figures/Final_Figures"
 
 F2A = readRDS(file.path(data_dir, "Fig2A.ovc_AUC_gain.rds"))
 F2B = readRDS(file.path(data_dir, "Fig2B.luad_AUC_gain.rds"))
@@ -96,14 +98,14 @@ F2H = readRDS(file.path(data_dir, "Fig2H.luad_sgz_accuracy.rds"))
 ```
 
 ## Figure 3
-* File under `~/data2/PureCN_manuscript/Figures`   
+* File under `/data2/PureCN_manuscript/Figures`   
     + F3A: `manuscript_TMB_both.Rmd`
     + F3B: `manuscript_mutSig_plots.Rmd`
 * File under `/Users:/sehyunoh/wallabe4_backup/github/PureCN_manuscript/luad/Figures`
     + F3C: `luad_manuscript_mutSig_plots.Rmd`
     
 ```{r}
-data_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
+data_dir = "/data2/PureCN_manuscript/Figures/Final_Figures"
 
 F3A = readRDS(file.path(data_dir, "Fig3A.TMB.rds"))
 F3B = readRDS(file.path(data_dir, "Fig3B.ovc_mutSig.rds"))
@@ -125,12 +127,12 @@ F3B + F3C + plot_layout(nrow = 1, width = c(1, 2))
 ```
 
 ## Sup. Figure 2
-* File under `~/data2/FACETS`   
+* File under `/data2/FACETS`   
     + SF2A/B: `OVC/Results/Figure_FACETS.Rmd`
     + SF2C/D: `LUAD/Results/Figure_FACETS_luad.Rmd`
 
 ```{r}
-data_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
+data_dir = "/data2/PureCN_manuscript/Figures/Final_Figures"
 
 SF2A = readRDS(file.path(data_dir, "SFig2A.ovc_puri.rds"))
 SF2B = readRDS(file.path(data_dir, "SFig2B.ovc_ploi.rds"))
@@ -147,21 +149,21 @@ SF2D = readRDS(file.path(data_dir, "SFig2D.luad_ploi.rds"))
 ```
 
 ## Sup. Figure 3
-* File under `~/data2/PureCN_manuscript/Figures`   
+* File under `/data2/PureCN_manuscript/Figures`   
     + SF3: `manuscript_concordance_plot.Rmd`
 ```{r fig.width=8, fig.height= 5}
-data_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
+data_dir = "/data2/PureCN_manuscript/Figures/Final_Figures"
 
 SF3 = readRDS(file.path(data_dir, "SFig3.concordance.rds"))
 SF3
 ```
 
 ## Sup. Figure 4
-* File under `~/data2/PureCN_manuscript/Figures`   
+* File under `/data2/PureCN_manuscript/Figures`   
     + SF4A/B: `manuscript_benchmark_both.Rmd`
 
 ```{r}
-data_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
+data_dir = "/data2/PureCN_manuscript/Figures/Final_Figures"
 
 SF4A = readRDS(file.path(data_dir, "SFig4A.cov_plot_purecn.rds"))
 SF4B = readRDS(file.path(data_dir, "SFig4B.cov_plot_sgz.rds"))
@@ -173,9 +175,7 @@ SF4B
 ```
 
 # PDF
-```{r}
-library(pdftools)
-
+```{r Fig1_pdf, eval=FALSE}
 pdf(file.path(data_dir, "Figure_1A_D.pdf"), 8, 9)
 (F1A | F1B ) / 
   (F1C | F1D)
@@ -192,3 +192,40 @@ dev.off()
 pdf_combine(c("Figure_1A_D.pdf", "Figure_1E_F.pdf", "Figure_1G_H.pdf"), output = "Figure_1.pdf")
 ```
 
+```{r Fig2_pdf}
+pdf(file.path(data_dir, "Figure_2.pdf"), 16, 9)
+(F2A | F2B | F2C | F2D) /
+  (F2E | F2F | F2G | F2H)
+dev.off()
+```
+
+```{r Fig3_pdf}
+pdf(file.path(data_dir, "Figure_3A.pdf"), 4.1, 4.5)
+F3A
+dev.off()
+
+pdf(file.path(data_dir, "Figure_3B_C.pdf"), 8, 3.5)
+F3B + F3C + plot_layout(nrow = 1, width = c(1, 2))
+dev.off()
+
+pdf_combine(c("Figure_3A.pdf", "Figure_3B_C.pdf"), output = "Figure_3.pdf")
+```
+
+```{r SFig2_pdf}
+pdf(file.path(data_dir, "Supplementary_Figure_2.pdf"), 7.5, 9.3)
+(SF2A | SF2B) / (SF2C | SF2D)
+dev.off()
+```
+
+```{r SFig3_pdf}
+pdf(file.path(data_dir, "Supplementary_Figure_3.pdf"), 8, 5)
+SF3
+dev.off()
+```
+
+```{r SFig4_pdf}
+pdf(file.path(data_dir, "Supplementary_Figure_4.pdf"), 6, 5.5)
+SF4A
+SF4B
+dev.off()
+```
