@@ -1,15 +1,22 @@
 ---
-title: "Untitled"
+title: "SNPs in normalDB"
 author: "Sehyun Oh"
-date: "1/4/2020"
-output: html_document
+date: "`r Sys.Date()`"
+output:
+  BiocStyle::html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+vignette: >
+  % \VignetteIndexEntry{Statistical analysis output}
+  % \VignetteEngine{knitr::rmarkdown}
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r}
+```{r echo=FALSE}
 suppressPackageStartupMessages({
     library(dplyr)
     library(Homo.sapiens)
@@ -18,16 +25,7 @@ suppressPackageStartupMessages({
 })
 ```
 
-## All the normal VCFs
-```{r}
-MUTECT_OUT = file.path("/nobackup/16tb_a/CNVworkflow_LUAD/mutect_output")
-out.dir = file.path(MUTECT_OUT, "normal_panel")
-pon_size = 250
-
-file_path = dir(out.dir, pattern="^.*_pon_no_none\\.vcf$", full.names = TRUE)[1: pon_size]
-```
-
-## Significant genes from tumor-only
+# Significant genes from tumor-only dNdSCV
 ```{r}
 dndscv_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
 sig_genes = read.table(file.path(dndscv_dir, "data/SignificantGenes.csv"), sep = ",", header = TRUE)
@@ -40,12 +38,58 @@ sig_genes_t
 ```{r}
 g = genes(Homo.sapiens, columns = "SYMBOL")
 g_sig_genes_t = subset(g, SYMBOL %in% sig_genes_t)
-g_sig_genes_t
 
 bedfiles.dir = "/home/sehyun/reference/bedfiles"
 ch = import.chain(file.path(bedfiles.dir, "hg19ToHg38.over.chain"))
 g_sig_genes_t_hg38 = liftOver(g_sig_genes_t, ch) %>% unlist
-g_sig_genes_t_hg38
+```
+
+## Trouble-shooting
+dNdSCV-called significant genes **not** found in Homo.Sapiens db
+```{r}
+setdiff(sig_genes_t, unique(g_sig_genes_t$SYMBOL))
+```
+
+# All the normal VCFs
+```{r}
+MUTECT_OUT = file.path("/nobackup/16tb_a/CNVworkflow_LUAD/mutect_output")
+out.dir = file.path(MUTECT_OUT, "normal_panel")
+pon_size = 250
+
+file_path = dir(out.dir, pattern="^.*_pon_no_none\\.vcf$", full.names = TRUE)[1: pon_size]
+```
+
+## Tumor dNdSCV input
+```{r}
+snv_list = readRDS(file.path(dndscv_dir, "data/LUAD_mutTable_tumor_only_rescalePriors.rds"))
+names(snv_list) = stringr::str_extract(names(snv_list), "TCGA.{11}")
+
+# Format mutation input
+for (i in seq_along(snv_list)) {
+
+    # format for dNdSCV
+    snv_list[[i]]$Sampleid = stringr::str_extract(snv_list[[i]]$Sampleid, "TCGA.{11}")
+    snv_list[[i]] = snv_list[[i]][c("Sampleid", "chr", "start", "REF", "ALT")]
+    colnames(snv_list[[i]]) = c("sampleID", "chr", "pos", "ref", "mut")
+    
+    # ref and mut as 'character' for paste
+    snv_list[[i]]$ref = as.character(snv_list[[i]]$ref)
+    snv_list[[i]]$mut = as.character(snv_list[[i]]$mut)
+    
+    # remove non-unique calls
+    dup = duplicated(snv_list[[i]]$pos)
+    snv_list[[i]] = snv_list[[i]][!dup,]
+}
+
+# combine all mutations
+mut_all = as.data.frame(matrix(NA, ncol = 5))
+colnames(mut_all) = colnames(snv_list[[1]])
+for (i in seq_along(snv_list)) {mut_all = rbind(mut_all, snv_list[[i]])}
+mut_all = mut_all[-1,]
+
+colnames(mut_all)[3] = "start"
+mut_all$end = mut_all$start
+mut_all_gr = makeGRangesFromDataFrame(mut_all, keep.extra.columns = TRUE)
 ```
 
 ## Find SNPs in normal VCFs
@@ -56,23 +100,44 @@ for (i in seq_along(file_path)) {
     vcf = readVcf(file_path[i], "hg38")   # import VCF file
     snp = rowRanges(vcf)   # Convert normal VCFs to GRange
     
-    ol = findOverlaps(snp, g_sig_genes_t_hg38)   # overlapping region
-    # ol_ind = unique(subjectHits(ol))   # index of overlapping region in significantGenes_tumor
-    # snp_gene = unique(g_sig_genes_t_hg38$SYMBOL[ol_ind] %>% unlist)   # significantGenes with SNP in normal sample
-    ol_ind = queryHits(ol)   # SNPs in significantGenes_tumor
-    snps = snp[ol_ind,]
+    ol = findOverlaps(snp, mut_all_gr)   # overlapping region
+    # ol_ind = queryHits(ol)   # SNPs in significantGenes_tumor
+    # snps = snp[ol_ind,]
     sample_name = stringr::str_extract(file_path[i], "TCGA.{21}")
-    
-    df = data.frame(seqnames = seqnames(snps), start = start(snps), sample = 1)
-    snp_gr[[sample_name]] = df
+    # 
+    # df = data.frame(seqnames = seqnames(snps), start = start(snps), sample = 1)
+    # snp_gr[[sample_name]] = df
+    snp_gr[[sample_name]] = ol
 }
 ```
 
-```{r eval=FALSE}
+```{r eval=FALSE, echo=FALSE}
 saveRDS(snp_gr, file.path(dndscv_dir, "data/snpFromNormalVCFs.rds"))
 ```
 
-## Summarize SNPs
+```{r echo=FALSE}
+snp_gr = readRDS(file.path(dndscv_dir, "data/snpFromNormalVCFs.rds"))
+```
+
+## Annotate with gene symbol
+```{r}
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(org.Hs.eg.db)
+
+snp_gr_annot = list()
+for (i in seq_along(snp_gr)) {
+  res = PureCN::annotateTargets(snp_gr[[i]], txdb = TxDb.Hsapiens.UCSC.hg38.knownGene, org.Hs.eg.db)
+  sample_name = names(snp_gr[i])
+  snp_gr_annot[[sample_name]] = res
+}
+```
+
+```{r}
+
+```
+
+
+# Summarize SNPs
 ```{r}
 df = snp_gr[[1]]
 colnames(df)[3] = names(snp_gr[1])
@@ -95,23 +160,25 @@ abline(v = 5, col = "red")
 sum(numSamples < 5)
 ```
 
+## GRanges of SNVs in <5 normals
+```{r warning=FALSE}
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(org.Hs.eg.db)
 
+df_lt5 = df[which(numSamples < 5),]
+df_lt5$end = df_lt5$start   # add 'end' column to create GRanges: all are SNP, so end is same as start
+gr_lt5 = makeGRangesFromDataFrame(df_lt5, keep.extra.columns = TRUE)
+gr_lt5 = PureCN::annotateTargets(gr_lt5, txdb = TxDb.Hsapiens.UCSC.hg38.knownGene, org.Hs.eg.db)
+```
 
+```{r eval=FALSE, echo=FALSE}
+saveRDS(gr_lt5, file.path(dndscv_dir, "data/SNVs_inLessThan5Normals.rds"))
+```
 
-```{r message=FALSE, warning=FALSE, echo=FALSE}
-snp_gr = readRDS(file.path(dndscv_dir, "data/snpFromNormalVCFs.rds"))
-table(sapply(snp_gr, function(x) {length(x)}))
-
-
-all_SNP = as.data.frame(matrix(NA, ncol = length(sig_genes_t)+1))
-colnames(all_SNP) = c("sampleID", sig_genes_t)
-
-for (i in seq_along(snp_gr)) {
-    x = table(snp_gr[i])
-    x$sampleID = names(snp_gr[i])
-    all_SNP = dplyr::bind_rows(all_SNP, x)
-}
-
-all_SNP = all_SNP[-1,]
-colSums(all_SNP[,-1], na.rm = TRUE)
+## Trouble-shooting
+Why 7 different genes are here? How `PureCN::annotateTargets` handle multiple genes
+at the same site? 
+```{r}
+setdiff(gr_lt5$Gene, unique(g_sig_genes_t$SYMBOL))
+setdiff(unique(g_sig_genes_t$SYMBOL), gr_lt5$Gene)
 ```

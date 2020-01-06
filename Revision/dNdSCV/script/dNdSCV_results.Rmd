@@ -109,7 +109,7 @@ sub
 
 ```{r eval=FALSE}
 # write.csv(sub, file = "~/data2/PureCN_manuscript/Revision/dNdSCV/data/SignificantGenes.csv")
-write.csv(sub, file = "~/data2/PureCN_manuscript/Figures/Final_Tables/Table7_dNdSCV_SignificantGenes_PoNFiltered.csv", row.names = FALSE)
+write.csv(sub, file = "~/data2/PureCN_manuscript/Figures/Final_Tables/Table5_dNdSCV_SignificantGenes_PoNFiltered.csv", row.names = FALSE)
 ```
 
 ## Mutually called significant genes

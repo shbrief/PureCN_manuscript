@@ -161,12 +161,34 @@ SF3
     + SF4A/B: `manuscript_benchmark_both.Rmd`
 
 ```{r}
-data_dir = "~/wallabe4_backup/github/PureCN_manuscript/Figures/Final_Figures"
+data_dir = "~/data2/PureCN_manuscript/Figures/Final_Figures"
 
 SF4A = readRDS(file.path(data_dir, "SFig4A.cov_plot_purecn.rds"))
 SF4B = readRDS(file.path(data_dir, "SFig4B.cov_plot_sgz.rds"))
 ```
 
-```{r fig.width = 10, fig.height = 5.5}
-SF4A | SF4B
+```{r fig.width = 6, fig.height = 5.5}
+SF4A
+SF4B
 ```
+
+# PDF
+```{r}
+library(pdftools)
+
+pdf(file.path(data_dir, "Figure_1A_D.pdf"), 8, 9)
+(F1A | F1B ) / 
+  (F1C | F1D)
+dev.off()
+
+pdf(file.path(data_dir, "Figure_1E_F.pdf"), 9, 5)
+(F1E | F1F)
+dev.off()
+
+pdf(file.path(data_dir, "Figure_1G_H.pdf"), 9.5, 3.5)
+(F1G | F1H)
+dev.off()
+
+pdf_combine(c("Figure_1A_D.pdf", "Figure_1E_F.pdf", "Figure_1G_H.pdf"), output = "Figure_1.pdf")
+```
+

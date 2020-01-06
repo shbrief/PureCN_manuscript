@@ -1,0 +1,129 @@
+---
+title: "Germline variant (PoN) filtering condition"
+author: "Sehyun Oh"
+date: "`r Sys.Date()`"
+output:
+  BiocStyle::html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 4
+vignette: >
+  % \VignetteIndexEntry{Statistical analysis output}
+  % \VignetteEngine{knitr::rmarkdown}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r echo=FALSE}
+suppressPackageStartupMessages({
+    library(dplyr)
+    library(Homo.sapiens)
+    library(rtracklayer)
+    library(VariantAnnotation)
+})
+```
+
+# Significant genes from tumor-only dNdSCV
+```{r}
+dndscv_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
+sig_genes = read.table(file.path(dndscv_dir, "data/SignificantGenes.csv"), sep = ",", header = TRUE)
+t_ind = which(sig_genes$Tumor.only < 0.01)
+sig_genes_t = sig_genes$Gene[t_ind] %>% as.character
+sig_genes_t
+
+n_ind = which(sig_genes$Matching.normal < 0.01)
+sig_genes_n = sig_genes$Gene[n_ind] %>% as.character
+sig_genes_n
+```
+
+# Compare dNdSCV inputs
+```{r}
+tumor = readRDS(file.path(dndscv_dir, "data/LUAD_mutTable_tumor_only_rescalePriors.rds"))
+normal = readRDS(file.path(dndscv_dir, "data/LUAD_mutTable_matching_normal.rds"))
+```
+
+## Combine all SNVs
+### tumor-only
+```{r df_tumor, eval=FALSE}
+df_tumor = tumor[[1]][,c("chr", "start", "end")]
+df_tumor$sample = 1
+colnames(df_tumor)[4] = stringr::str_extract(names(tumor[1]), "TCGA.{11}")
+
+for (i in 2:length(tumor)) {
+    new_df = tumor[[i]][,c("chr", "start", "end")]
+    new_df$sample = 1
+    colnames(new_df)[4] = stringr::str_extract(names(tumor[i]), "TCGA.{11}")
+    df_tumor = dplyr::full_join(df_tumor, new_df, by = c("chr", "start", "end"))
+}
+```
+
+### matched-normal
+```{r df_normal, warning=FALSE, message=FALSE, eval=FALSE}
+df_normal = normal[[1]][,c("chr", "start", "end")]
+df_normal$sample = 1
+colnames(df_normal)[4] = stringr::str_extract(names(normal[1]), "TCGA.{11}")
+
+for (i in 2:length(normal)) {
+    new_df = normal[[i]][,c("chr", "start", "end")]
+    new_df$sample = 1
+    colnames(new_df)[4] = stringr::str_extract(names(normal[i]), "TCGA.{11}")
+    df_normal = dplyr::full_join(df_normal, new_df, by = c("chr", "start", "end"))
+}
+```
+
+```{r eval=FALSE, echo=FALSE}
+write.csv(df_tumor, file.path(dndscv_dir, "data/dndscvInputTumor.csv"))
+write.csv(df_normal, file.path(dndscv_dir, "data/dndscvInputNormal.csv"))
+```
+
+```{r echo=FALSE}
+dndscv_dir = "~/data2/PureCN_manuscript/Revision/dNdSCV"
+df_tumor = read.table(file.path(dndscv_dir, "data/dndscvInputTumor.csv"), sep = ",", header = TRUE)[,-1]
+df_normal = read.table(file.path(dndscv_dir, "data/dndscvInputNormal.csv"), sep = ",", header = TRUE)[,-1]
+```
+
+## Count SNVs
+```{r}
+df_tumor$numSNVs = rowSums(df_tumor[,4:ncol(df_tumor)], na.rm = TRUE)
+df_normal$numSNVs = rowSums(df_normal[,4:ncol(df_normal)], na.rm = TRUE)
+
+# df_tumor = df_tumor[,c("chr", "start", "end", "numSNVs")]
+# df_normal = df_normal[,c("chr", "start", "end", "numSNVs")]
+```
+
+# SNVs only in tumor-only 
+```{r}
+snv_normal = paste0(df_normal$chr, "_", df_normal$start)
+snv_tumor = paste0(df_tumor$chr, "_", df_tumor$start)
+
+ind = which(!snv_tumor %in% snv_normal)
+```
+
+`r length(setdiff(snv_tumor, snv_normal))` SNVs are in tumor, but not in normal.
+
+```{r}
+snv_onlyTumor = df_tumor[ind,]
+```
+
+## Annotate with gene symbol
+```{r warning=FALSE}
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+library(org.Hs.eg.db)
+
+snv_onlyTumor = makeGRangesFromDataFrame(snv_onlyTumor, keep.extra.columns = TRUE)
+snv_onlyTumor = PureCN::annotateTargets(snv_onlyTumor, txdb = TxDb.Hsapiens.UCSC.hg38.knownGene, org.Hs.eg.db)
+```
+
+## Save SNVs only in tumor
+```{r eval=FALSE}
+saveRDS(snv_onlyTumor, file.path(dndscv_dir, "data/SNVs_onlyInTumor.rds"))
+```
+ 
+## How many 1~4 SNVs are there for cancer genes from tumor-only analysis?
+```{r}
+FPs = setdiff(sig_genes_t, sig_genes_n)
+sapply(FPs, function(x) {x %in% unique(snv_onlyTumor$Gene)})
+sapply(FPs, function(x) {table(snv_onlyTumor$numSNVs[which(snv_onlyTumor$Gene == x)])}) 
+```
