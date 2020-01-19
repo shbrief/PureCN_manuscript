@@ -72,6 +72,29 @@ sequencing artifacts)
 source("/home/riestma1/pon.R")
 ```
 
+```{r pon.R_script, echo=FALSE, eval=FALSE}
+library(VariantAnnotation)
+x <- readRDS("LUAD_mutTable_tumor_only_rescalePriors.rds")  # list of data frame containing SNVs from each sample
+xx <- GRanges(do.call(rbind, x))   # combine all the information in x into GRanges object
+y <- read.csv("pathToPoN.csv", as.is=T)[,2]
+
+# takes a while
+# vcfs <- lapply(y, function(f) subsetByOverlaps(readVcf(f), xx))
+# load pre-computed:
+vcfs <- readRDS("/home/riestma1/LUAD_vcfs.rds")   # list of GRanges containing overlapping site between each sample and their SNP calls
+
+# count overlaps for all variants with all VCFs
+oa <- rowSums(do.call(cbind, lapply(vcfs, function(f) overlapsAny(xx, f))))   # the number of samples stil in the SNV calls??
+xx$pon.count <- oa
+
+# CD8B seems to match: 108 in tumor
+subsetByOverlaps(xx, GRanges("chr2:86858179"))
+length(subsetByOverlaps(xx, GRanges("chr2:86858179")))
+
+saveRDS(xx, "LUAD_pon.rds")
+```
+
+
 ```{r PoN_filtered}
 xx = readRDS("/home/riestma1/LUAD_pon.rds")
 x = xx[which(xx$pon.count < 5)]   # remove SNVs seen in >=5 in PoN
