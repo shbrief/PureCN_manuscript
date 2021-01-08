@@ -16,7 +16,7 @@ source(file.path(methods_dir, "sample_sorting.R"))
 data_dir = "/home/sehyun/Documents/github/PureCN_manuscript/Data"
 mutect_dir = file.path("/data/16tb/CNVworkflow", catalog, "mutect_output/stat_matching_normal")
 
-out_dir = file.path("/data/16tb/CNVworkflow/", catalog, "purecn_output")
+out_dir = file.path("/nobackup/16tb_b/CNVworkflow", catalog, "purecn_output")
 rds_dir = file.path(out_dir, paste0(catalog, "_PureCN"), run_type)
 rds_list = list.files(rds_dir)
 
